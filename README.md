@@ -1,7 +1,6 @@
-[![Release](https://img.shields.io/github/v/release/labzink/cc-probeline)](https://github.com/labzink/cc-probeline/releases)
-[![CI](https://img.shields.io/github/actions/workflow/status/labzink/cc-probeline/test.yml?branch=main&label=CI)](https://github.com/labzink/cc-probeline/actions/workflows/test.yml)
-[![License: MIT](https://img.shields.io/github/license/labzink/cc-probeline)](LICENSE)
+[![License: MIT](https://img.shields.io/github/license/romular21/cc-probeline)](LICENSE)
 ![Platforms](https://img.shields.io/badge/platforms-macOS%20·%20Linux%20·%20Windows-555)
+![Fork](https://img.shields.io/badge/fork%20of-labzink%2Fcc--probeline-555)
 
 # See where it leaks. Stop paying for it.
 
@@ -11,14 +10,51 @@ And it takes exactly as much room as you let it: every row is configurable, down
 
 **Stop overpaying for inefficiency you can't see. Spend your limits on purpose.**
 
-**Install in one command:**
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/labzink/cc-probeline/main/scripts/install.sh | sh
-```
-**[See all install options →](#install)**
+**[Why this fork exists →](#why-this-fork-exists)** · **[Install →](#install)**
 
 ![cc-probeline live dashboard: a Claude Code session where every turn lands priced, subagents bill in real time, the cache TTL ages ⏱ 60m → 0m and rebuilds in dollars, and the 5h limit fills to 100% with overage — all in the status line](assets/video/hero.gif)
+
+## Why this fork exists
+
+The original renders a fixed eight-row dashboard. For seeing everything at once
+that is the right default, and its author's position is that anyone who wants it
+smaller is free to adapt the code. This fork is that adaptation — kept in a shape
+other people can use, so the answer to "make it shorter" is a config key rather
+than a private patch.
+
+Two things changed, and one thing deliberately did not.
+
+**Every row became optional.** The legend, the borders, the per-turn table and
+either header line each switch off from the config, and they stack. The eight
+rows go down to one:
+
+```
+5h: 1% ↻ 4h:47m · 7d: 9% ↻ 6d.7h • Fable 7d: 5% • opus-5 xhigh • ctx: 30% 300K/1000K
+```
+
+**Per-model limits arrived.** Claude Code tracks a separate weekly window for
+models that have one, but never puts it in the status-line payload — you only
+see it by opening `/usage`. This fork reads it from the snapshot Claude Code
+caches locally and puts it on the line next to the account-wide bars.
+
+**Defaults did not move.** Every key added here defaults to the behaviour the
+original shipped. Install this over the original and nothing looks different
+until you ask for it.
+
+| | original | this fork |
+|---|---|---|
+| Rows | fixed 8 | 1–8, every row a key |
+| `table_rows = 0` | raised to 1 | valid: no table at all |
+| Per-model limits | — | `Fable 7d: 5%` |
+| Bars | 5 or 10 blocks | 3–20 segments, five glyph styles, or a bare percentage |
+| Palette | fixed | `[colors]`, any role, hex or SGR |
+| Effort | `◕` | `◕` or `xhigh` |
+| Header rows | always two | merged into one when they fit |
+| `tutorial_hints` | key existed, was never read | works |
+| Config edits | comments stripped on every write | preserved |
+
+The full list, including four bugs found along the way, is in
+[CHANGELOG.md](CHANGELOG.md).
 
 ## What the probe pulls out
 
@@ -38,7 +74,7 @@ Most status lines count things — tokens, turns, running agents. **The probe pr
 ![Turn-by-turn cost table: orchestrator and subagent rows side by side, cache read/write per turn, per-turn dollars, config hint at the bottom](assets/screenshots/02.png)
 **Every turn lands on its own line — orchestrator and subagents alike — priced as it happens. Finally you see where every dollar of your reasoning actually goes.**
 
-**Built to fit your terminal.** Don't like a segment, the colours, the width — or how many rows it eats? The `/cc-probeline-config` wizard walks you through it and writes the config for you — no hand-editing TOML. (That's the hint at the bottom of the dashboard above.)
+**Built to fit your terminal.** Don't like a segment, the colours, the width — or how many rows it eats? Every one of those is a config key, and `cc-probeline <key> <value>` writes it for you — no hand-editing TOML. The `/cc-probeline-config` wizard does the same through a widget; it ships with the plugin, which this fork does not publish, so use it only if you have the original's plugin installed alongside.
 
 ![Status line past the plan limit: +$3.80 extra usage shown in red next to a filled 5h bar](assets/screenshots/03.png)
 **The moment you cross 100%, you'll see it — and the extra bill stays under your control.**
@@ -58,51 +94,48 @@ A probe is an instrument of observation, not intervention. Everything cc-probeli
 - **What it reads:** your session's JSONL log (`~/.claude/projects/…`) and the status-line payload Claude Code pipes directly to it.
 - **What it doesn't touch:** credentials, keychain, OAuth tokens — no telemetry, ever. Rendering is fully offline; the only network it ever makes is one optional, opt-out price/version check a day — a plain download of a public file, sending nothing about your session. Turn it off and it never touches the network at all.
 - **The binary:** single compiled Go binary, no runtime dependencies, one run ≈ 5 ms.
-- **Auditable:** MIT license, open source, every release published with SHA256 checksums and signed build provenance (SLSA) — verify any download with `gh attestation verify <file> --repo labzink/cc-probeline`.
+- **Auditable:** MIT license, open source. This fork is built from source rather than distributed as a release, so there is nothing to verify a signature against — you compile the code you can read. (The upstream project publishes signed, checksummed release archives.)
 
 ## Install
 
-Every channel below does the same thing: install the binary **and** wire it into
-your Claude Code status line. After installing, **restart Claude Code** and you're
-done — no extra commands. (If you already have a custom status line, it's left
-untouched; switch to cc-probeline with `cc-probeline install --merge-settings --force`.)
-
-**Homebrew** (macOS — it's a cask; on Linux use curl below):
+This fork publishes no release archives, so the packaged channels — Homebrew,
+Scoop, the curl one-liner, the plugin marketplace — all still point at the
+**original** and would install that instead. Build from source to get this
+version:
 
 ```sh
-brew install labzink/homebrew-tap/cc-probeline
+git clone https://github.com/romular21/cc-probeline
+cd cc-probeline
+go build -o ~/.local/bin/cc-probeline ./cmd/cc-probeline
+cc-probeline install          # wires the Claude Code status line
 ```
 
-**curl** (macOS / Linux — downloads the release archive for your OS, verifies SHA256, installs the binary):
+Requires Go 1.22 or newer. `cc-probeline install` writes the `statusLine` block
+into `~/.claude/settings.json`; an existing custom status line is left untouched
+unless you pass `--merge-settings --force`. **Restart Claude Code** afterwards.
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/labzink/cc-probeline/main/scripts/install.sh | sh
-```
-
-**Scoop** (Windows, experimental):
-
-```powershell
-scoop bucket add labzink https://github.com/labzink/scoop-bucket
-scoop install cc-probeline
-```
-
-**Claude Code plugin marketplace:**
-
-```
-/plugin marketplace add labzink/cc-probeline
-```
-
-Then install the plugin from the `/plugin` menu (or `/plugin install cc-probeline`) and **restart Claude Code** — the slash commands below only show up after a restart.
-
-Once restarted, run `/cc-probeline-install`: it detects your OS, installs the binary through the right channel (Homebrew / Scoop / curl) and wires the status line — asking before it runs anything. You can still install manually with any channel above. The plugin also gives you `/cc-probeline-update` to upgrade later and the `/cc-probeline-config` wizard.
-
-**Verify your installation:**
+**Verify:**
 
 ```sh
 cc-probeline --check
 ```
 
 Prints `Installation OK`.
+
+**Updating** is the same loop: `git pull && go build -o ~/.local/bin/cc-probeline ./cmd/cc-probeline`.
+The `/cc-probeline-update` command shipped by the plugin upgrades through the
+packaged channels and would pull the original over your build, so do not use it
+here.
+
+### Installing the original instead
+
+If you want the upstream version — packaged, signed, with release archives —
+follow [its own README](https://github.com/labzink/cc-probeline#install). In
+short:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/labzink/cc-probeline/main/scripts/install.sh | sh
+```
 
 ### Requirements
 
@@ -197,39 +230,45 @@ A header line whose every segment is switched off is dropped entirely rather tha
 
 ### Updating
 
-When a newer release is out, the status line surfaces it: `↑ update: vX → vY — run /cc-probeline-update`. Run that command inside Claude Code and it upgrades through whichever channel you installed with (and installs it for you if the binary is missing). Or update by hand:
-
 ```sh
-brew upgrade labzink/homebrew-tap/cc-probeline                                                   # Homebrew
-scoop update cc-probeline                                                                        # Scoop
-curl -fsSL https://raw.githubusercontent.com/labzink/cc-probeline/main/scripts/install.sh | sh   # curl (re-runs latest)
+git pull && go build -o ~/.local/bin/cc-probeline ./cmd/cc-probeline
 ```
 
-The update notice comes from a once-a-day price/version check; turn it off with `price_check = false` (or in the `/cc-probeline-config` wizard) and cc-probeline stays fully offline. Updating keeps your status-line wiring intact.
+`/cc-probeline-update` upgrades through the packaged channels, so it would pull
+the original over your build — do not use it here.
+
+The status line also carries an `↑ update: vX → vY` notice driven by the same
+once-a-day check. In this fork it reports **upstream's** latest version, which is
+not what you are running; the check is still worth keeping for the other half of
+its job, refreshing the price table so cost estimates track Anthropic's rates.
+Turn the whole thing off with `price_check = false` if the notice bothers you
+more than stale prices would.
+
 
 ### Uninstall
 
-Uninstalling restores the status line you had before (byte-for-byte, if cc-probeline replaced one) and removes the binary. Use the command for the channel you installed with — **restart Claude Code afterwards**:
-
 ```sh
-brew uninstall cc-probeline                                                                            # Homebrew — also restores your previous status line
-curl -fsSL https://raw.githubusercontent.com/labzink/cc-probeline/main/scripts/install.sh | sh -s -- --uninstall   # curl
+cc-probeline uninstall        # restores the status line you had before
+rm ~/.local/bin/cc-probeline
 ```
 
-**Scoop** (Windows): restore the status line first, then remove the binary — `scoop uninstall` can't run the restore step itself:
-
-```powershell
-cc-probeline uninstall
-scoop uninstall cc-probeline
-```
-
-To only un-wire the status line without removing the binary, run `cc-probeline uninstall` on its own.
+The restore is byte-for-byte if cc-probeline replaced an existing status line.
+**Restart Claude Code afterwards.** The packaged uninstall paths (`brew
+uninstall`, the curl script's `--uninstall`) belong to the original and have
+nothing to remove here.
 
 ## The experiment
 
-cc-probeline is a personal experiment: can you hand programming over to AI **entirely** — every line of code, every design decision — and still end up with a product that matches the operator's vision **exactly**?
+The original is a personal experiment by its author: can you hand programming
+over to AI **entirely** — every line of code, every design decision — and still
+end up with a product that matches the operator's vision exactly? Their answer,
+and the build log that goes with it, is in
+[the upstream README](https://github.com/labzink/cc-probeline#the-experiment).
 
-This is the answer. Claude wrote all of it; the operator never touched the code. What the operator owned was everything that decides whether it's any good: the vision, the spec, the design direction, and every single call — reviewed detail by detail until the result was exactly right. A few weeks of spare-time work — competitor research, a written spec, phased design and implementation. The commit history is public and reads like a build log: you can watch the product take shape, phase by phase.
+This fork was built the same way and is a second data point for the same
+question: the changes here were specified in conversation, written by Claude,
+and reviewed decision by decision — including the four upstream bugs the work
+turned up, which were found by reading the code rather than by hitting them.
 
 **Contributing:** bug reports and ideas are welcome — open an issue.
 
