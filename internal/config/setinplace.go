@@ -33,6 +33,41 @@ func tomlInt(v int) string { return strconv.Itoa(v) }
 // tomlString renders a Go string as a quoted TOML literal.
 func tomlString(v string) string { return strconv.Quote(v) }
 
+// insertHint is the comment attached to a key the setter has to create.
+//
+// It applies on insertion only. A user who configures entirely through the CLI
+// would otherwise accumulate a file of bare assignments and have to go read the
+// shipped example to learn what else a key accepts — the config is meant to be
+// readable on its own. Replacing an existing value never touches comments:
+// whatever the user wrote there is theirs.
+var insertHint = map[string]string{
+	"table_rows":        "0 = no table at all, max 40",
+	"table_legend":      "the column labels under the table (2 rows)",
+	"table_frame":       "the ┌─┐ / └─┘ borders and outer bars (2 rows)",
+	"table_dividers":    "the inner │ separators — costs no rows, only noise",
+	"header_line0":      "email • project • quota",
+	"header_line1":      "model • ctx • cost • time • git",
+	"header_merge":      "put both header rows on one line when they fit",
+	"bar_width":         "3-20 segments; 5 and 10 pre-round, others stay proportional",
+	"bar_style":         `block | line | low | dot | none (percentage instead of a bar)`,
+	"effort_style":      "glyph (○ ◔ ◑ ◕ ●) | word (xhigh)",
+	"model_variant_tag": `keep the "[1m]" tag in the model name`,
+	"tutorial_hints":    "rotating tips; alerts surface either way",
+	"price_check":       "one optional price/version check a day",
+	"no_color":          "plain monochrome output",
+	"mode":              "standard | super-compact",
+
+	// [colors]
+	"green":   `bars below the notice threshold — "#rrggbb" or raw SGR`,
+	"sage":    "healthy band for values shown as text (bar_style = none)",
+	"amber":   "notice band for values shown as text (bar_style = none)",
+	"yellow":  "notice band on bars, TTL and agent labels",
+	"orange":  "warn band",
+	"red":     "critical band",
+	"cyan":    "git branch and the orchestrator label",
+	"magenta": "reasoning-effort indicator",
+}
+
 // setScalar updates [table].key to rawValue in the TOML file at path, leaving
 // the rest of the file byte-for-byte intact.
 //
@@ -100,7 +135,7 @@ func setTOMLValue(data []byte, table, key, rawValue string) []byte {
 	// lands inside the table rather than at the end of the file, where it would
 	// belong to whichever table happens to be last.
 	if headerIdx >= 0 {
-		insert := []string{key + " = " + rawValue}
+		insert := []string{withHint(key, rawValue)}
 		lines = append(lines[:headerIdx+1], append(insert, lines[headerIdx+1:]...)...)
 		return []byte(strings.Join(lines, "\n"))
 	}
@@ -110,8 +145,18 @@ func setTOMLValue(data []byte, table, key, rawValue string) []byte {
 	if len(out) > 0 && !strings.HasSuffix(out, "\n") {
 		out += "\n"
 	}
-	out += "\n[" + table + "]\n" + key + " = " + rawValue + "\n"
+	out += "\n[" + table + "]\n" + withHint(key, rawValue) + "\n"
 	return []byte(out)
+}
+
+// withHint renders a freshly inserted assignment, appending the accepted values
+// as a comment when one is known for the key.
+func withHint(key, rawValue string) string {
+	line := key + " = " + rawValue
+	if h := insertHint[key]; h != "" {
+		return line + "  # " + h
+	}
+	return line
 }
 
 // createMinimalFile writes a new config containing only the version marker and

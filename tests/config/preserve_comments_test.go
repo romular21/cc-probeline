@@ -162,6 +162,50 @@ func TestSetters_InsertMissingKeyIntoItsTable(t *testing.T) {
 	}
 }
 
+// T-PC7: a key the setter has to create arrives with its accepted values in a
+// comment. Someone who only ever uses the CLI would otherwise end up with a
+// file of bare assignments and no way to tell what else a key takes.
+func TestSetters_AnnotateInsertedKeys(t *testing.T) {
+	p := writeSeed(t) // seed has no bar_style, no header_merge, no [colors]
+
+	if err := config.SetBarStyle(p, "none"); err != nil {
+		t.Fatalf("SetBarStyle: %v", err)
+	}
+	if err := config.SetColor(p, "sage", "#7cb27c"); err != nil {
+		t.Fatalf("SetColor: %v", err)
+	}
+
+	got := readFile(t, p)
+	for _, want := range []string{
+		`bar_style = "none"`,
+		"block | line | low | dot | none",
+		`sage = "#7cb27c"`,
+		"bar_style = none", // the sage hint names the style it belongs to
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("inserted key is missing %q:\n%s", want, got)
+		}
+	}
+}
+
+// T-PC8: replacing an existing value must NOT graft a hint onto the user's own
+// comment — the annotation is for keys the setter creates, nothing else.
+func TestSetters_DoNotAnnotateExistingKeys(t *testing.T) {
+	p := writeSeed(t) // seed already carries table_rows with its own comment
+
+	if err := config.SetTableRows(p, 7); err != nil {
+		t.Fatalf("SetTableRows: %v", err)
+	}
+
+	got := readFile(t, p)
+	if !strings.Contains(got, "# last few turns, still priced") {
+		t.Errorf("the user's own comment was replaced:\n%s", got)
+	}
+	if strings.Contains(got, "max 40") {
+		t.Errorf("a hint was grafted onto an existing key:\n%s", got)
+	}
+}
+
 // T-PC4: a broken config is reported, never overwritten — a typo in a
 // hand-edited file must not cost the user the rest of it.
 func TestSetters_RefuseToClobberBrokenFile(t *testing.T) {
