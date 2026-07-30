@@ -155,7 +155,7 @@ func renderScopedLimit(l claudejson.ScopedLimit, level Level, c Config,
 		// save a few columns but read as a different kind of measurement sitting
 		// on the same line; bars that mean the same thing should look the same.
 		// The width is bought back by dropping the duplicated countdown instead.
-		bar := quotaUsageColor(l.Percent, notice, warn, critical, t) +
+		bar := usageValueColour(l.Percent, notice, warn, critical, c, t) +
 			usageBar(l.Percent, c) + colourReset
 		return fmt.Sprintf("%s 7d: %s%s", l.Model, bar, reset)
 	case LevelCompact:

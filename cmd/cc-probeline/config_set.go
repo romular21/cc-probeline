@@ -360,6 +360,30 @@ func runModelVariantTagImpl(args []string, stdout, stderr io.Writer) int {
 		"cc-probeline model-variant-tag on|off", "model variant tag", config.SetModelVariantTag)
 }
 
+// runColor repoints one palette role.
+// Usage: cc-probeline color <name> <#rrggbb|SGR>
+func runColor(args []string) int {
+	return runColorImpl(args, os.Stdout, os.Stderr)
+}
+
+func runColorImpl(args []string, stdout, stderr io.Writer) int {
+	if len(args) < 2 {
+		fmt.Fprintln(stderr, `Usage: cc-probeline color <green|amber|yellow|orange|red|cyan|magenta> <"#rrggbb"|SGR>`)
+		return 64
+	}
+	path := config.GlobalConfigPath()
+	if path == "" {
+		fmt.Fprintln(stderr, "cc-probeline: cannot determine config directory (HOME/XDG_CONFIG_HOME/APPDATA unset)")
+		return 2
+	}
+	if err := config.SetColor(path, args[0], args[1]); err != nil {
+		fmt.Fprintln(stderr, "cc-probeline:", err)
+		return 2
+	}
+	fmt.Fprintf(stdout, "cc-probeline: colour %s set to %s (config: %s)\n", args[0], args[1], path)
+	return 0
+}
+
 // runBarStyle selects the progress-bar glyph style.
 // Usage: cc-probeline bar-style block|line|low|dot|none
 func runBarStyle(args []string) int {

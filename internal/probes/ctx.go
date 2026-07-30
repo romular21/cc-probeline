@@ -141,6 +141,13 @@ func (p *CtxProbe) Render(d Data, c Config, t renderer.Theme, level Level) strin
 		// T-15: colour ONLY the bar; usedK number is rendered plain (no marker).
 		// ctxNumberMarker returns a {{color:X}} token for the bar colour band.
 		marker := ctxNumberMarker(pct, c, t)
+		if barStyleNoBar(c) {
+			// The bar is a bare number here, so it takes the text colour bands
+			// (raw ANSI passes through Apply untouched, like the palette codes
+			// the quota probe emits).
+			notice, warn, critical := effectiveCtxRatios(c)
+			marker = textValueColour(pct, notice, warn, critical, t)
+		}
 		return fmt.Sprintf("ctx: %s%s{{reset}} %s/%s", marker, bar, usedK, sizeK)
 	}
 

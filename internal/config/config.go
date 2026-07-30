@@ -23,6 +23,10 @@ type Config struct {
 	// CostBudgetUSD=0 disables budget warnings. Ratios are in the [0,1] range.
 	Thresholds Thresholds `toml:"thresholds" json:"thresholds"`
 
+	// Colors overrides individual palette roles. Omitted roles keep the
+	// built-in colour; an unusable value is skipped rather than applied.
+	Colors Colors `toml:"colors" json:"colors"`
+
 	// Probes groups per-probe configuration that is not covered by the widget
 	// toggles above. Currently only the Email probe requires extra settings.
 	Probes Probes `toml:"probes" json:"probes"`

@@ -31,21 +31,45 @@ func isAssignment(trimmed, key string) bool {
 // replaceTOMLValue replaces the value after '=' on a key line with val,
 // preserving the key, its indentation, and any trailing inline comment.
 //
-// The existing value is assumed to be a scalar. A '#' inside a quoted string
-// value would be mistaken for the start of a comment, but no setter writes such
-// a value: the only strings written are mode and effort_style, both drawn from
-// fixed vocabularies.
+// The comment is found with commentStart, which ignores a '#' inside a quoted
+// string — colour values are written as "#rrggbb", and treating that hash as a
+// comment marker would swallow the value and leave a stray quote behind.
 func replaceTOMLValue(line, val string) string {
 	eq := strings.Index(line, "=")
 	if eq < 0 {
 		return line
 	}
 	head := line[:eq+1]
+	rest := line[eq+1:]
+
 	comment := ""
-	if h := strings.Index(line[eq+1:], "#"); h >= 0 {
-		comment = " " + strings.TrimSpace(line[eq+1+h:])
+	if h := commentStart(rest); h >= 0 {
+		comment = " " + strings.TrimSpace(rest[h:])
 	}
 	return head + " " + val + comment
+}
+
+// commentStart returns the index of the '#' that begins an inline comment in s,
+// or -1 when there is none. A '#' inside a single- or double-quoted string is
+// part of the value, not a comment. Escapes are not interpreted: TOML basic
+// strings allow \" but no setter writes one, and treating a backslash-quote as
+// closing the string would only ever end the scan early on input we do not
+// produce.
+func commentStart(s string) int {
+	var quote rune
+	for i, r := range s {
+		switch {
+		case quote != 0:
+			if r == quote {
+				quote = 0
+			}
+		case r == '"' || r == '\'':
+			quote = r
+		case r == '#':
+			return i
+		}
+	}
+	return -1
 }
 
 // GlobalConfigPath returns the platform-appropriate global config location

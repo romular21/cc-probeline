@@ -46,6 +46,46 @@ var barGlyphs = map[string][3]string{
 // otherwise append beside the bar, which would then appear twice.
 func barStyleNoBar(c Config) bool { return c.BarStyle == barStyleNone }
 
+// textValueColour returns the colour for a percentage rendered in place of a
+// bar (bar_style = "none").
+//
+// A bar earns saturated colour: it is a block of fill, and the colour is what
+// gives the block meaning. A bare number does not — the same colour reads as an
+// alert, and at 9% of a weekly window there is nothing to alert about. So the
+// bands are re-weighted for text:
+//
+//	below notice   dim green — present, deliberately quiet
+//	notice..warn   soft amber rather than ANSI yellow
+//	warn..critical orange, unchanged
+//	critical and up red, unchanged
+//
+// Only the two calm bands are touched. Orange and red are the ones that want
+// the eye, and muting them would be the opposite of the point.
+func textValueColour(pct, notice, warn, critical float64, t renderer.Theme) string {
+	if !t.AnsiEnabled {
+		return ""
+	}
+	switch {
+	case pct >= critical*100.0:
+		return t.Colors.Red
+	case pct >= warn*100.0:
+		return t.Colors.Orange
+	case pct >= notice*100.0:
+		return t.Colors.Amber
+	default:
+		return t.Colors.Dim + t.Colors.Green
+	}
+}
+
+// usageValueColour picks the colour for a bar or for the percentage standing in
+// for one, so every caller gets the same treatment from a single decision.
+func usageValueColour(pct, notice, warn, critical float64, c Config, t renderer.Theme) string {
+	if barStyleNoBar(c) {
+		return textValueColour(pct, notice, warn, critical, t)
+	}
+	return quotaUsageColor(pct, notice, warn, critical, t)
+}
+
 // usageBar renders a Full-level progress bar at the width and in the style the
 // config asks for.
 //
