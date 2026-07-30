@@ -270,3 +270,103 @@ func runTableRowsImpl(args []string, stdout, stderr io.Writer) int {
 	fmt.Fprintf(stdout, "cc-probeline: table-rows set to %d (config: %s)\n", n, path)
 	return 0
 }
+
+// parseOnOff maps the "on"/"off" argument shared by every boolean subcommand.
+func parseOnOff(arg string) (value bool, ok bool) {
+	switch arg {
+	case "on":
+		return true, true
+	case "off":
+		return false, true
+	}
+	return false, false
+}
+
+// setChromeToggle is the shared body of the table/header chrome subcommands:
+// parse on|off, resolve the global config path, apply set, report.
+// label names the setting in both the usage line and the success message.
+func setChromeToggle(args []string, stdout, stderr io.Writer, usage, label string,
+	set func(path string, value bool) error) int {
+	if len(args) < 1 {
+		fmt.Fprintln(stderr, "Usage: "+usage)
+		return 64
+	}
+	value, ok := parseOnOff(args[0])
+	if !ok {
+		fmt.Fprintln(stderr, "Usage: "+usage)
+		return 64
+	}
+
+	path := config.GlobalConfigPath()
+	if path == "" {
+		fmt.Fprintln(stderr, "cc-probeline: cannot determine config directory (HOME/XDG_CONFIG_HOME/APPDATA unset)")
+		return 2
+	}
+
+	if err := set(path, value); err != nil {
+		fmt.Fprintln(stderr, "cc-probeline:", err)
+		return 2
+	}
+
+	state := "enabled"
+	if !value {
+		state = "disabled"
+	}
+	fmt.Fprintf(stdout, "cc-probeline: %s %s (config: %s)\n", label, state, path)
+	return 0
+}
+
+// runTableLegend shows or hides the table legend row.
+// Usage: cc-probeline table-legend on|off
+func runTableLegend(args []string) int {
+	return runTableLegendImpl(args, os.Stdout, os.Stderr)
+}
+
+func runTableLegendImpl(args []string, stdout, stderr io.Writer) int {
+	return setChromeToggle(args, stdout, stderr,
+		"cc-probeline table-legend on|off", "table legend", config.SetTableLegend)
+}
+
+// runTableFrame shows or hides the table borders.
+// Usage: cc-probeline table-frame on|off
+func runTableFrame(args []string) int {
+	return runTableFrameImpl(args, os.Stdout, os.Stderr)
+}
+
+func runTableFrameImpl(args []string, stdout, stderr io.Writer) int {
+	return setChromeToggle(args, stdout, stderr,
+		"cc-probeline table-frame on|off", "table frame", config.SetTableFrame)
+}
+
+// runTableDividers shows or hides the inner column separators.
+// Usage: cc-probeline table-dividers on|off
+func runTableDividers(args []string) int {
+	return runTableDividersImpl(args, os.Stdout, os.Stderr)
+}
+
+func runTableDividersImpl(args []string, stdout, stderr io.Writer) int {
+	return setChromeToggle(args, stdout, stderr,
+		"cc-probeline table-dividers on|off", "table dividers", config.SetTableDividers)
+}
+
+// runHeaderLine shows or hides one of the two header lines.
+// Usage: cc-probeline header-line 0|1 on|off
+func runHeaderLine(args []string) int {
+	return runHeaderLineImpl(args, os.Stdout, os.Stderr)
+}
+
+func runHeaderLineImpl(args []string, stdout, stderr io.Writer) int {
+	const usage = "Usage: cc-probeline header-line 0|1 on|off"
+	if len(args) < 2 {
+		fmt.Fprintln(stderr, usage)
+		return 64
+	}
+	n, err := strconv.Atoi(args[0])
+	if err != nil || (n != 0 && n != 1) {
+		fmt.Fprintln(stderr, usage)
+		return 64
+	}
+	return setChromeToggle(args[1:], stdout, stderr, usage,
+		fmt.Sprintf("header line %d", n),
+		func(path string, value bool) error { return config.SetHeaderLine(path, n, value) })
+}

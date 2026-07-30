@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/labzink/cc-probeline/internal/cost"
+	"github.com/labzink/cc-probeline/internal/format"
 	"github.com/labzink/cc-probeline/internal/hint"
 	"github.com/labzink/cc-probeline/internal/mode"
 	"github.com/labzink/cc-probeline/internal/parser"
@@ -54,10 +55,28 @@ func (a *Assembler) Render(d probes.Data) string {
 	// appear in registration order.
 	// I2: line1 restores Priority-based sort so git (P=2) appears to the right of
 	// ctx/cost/time (P=1). sortByPriority=false was an over-reach of the T-21 fix.
-	l0 := renderer.FitLine(a.buildProbeEntries(probes.Line0Registry, d, false), cols, bulletSep)
-	l1 := renderer.FitLine(a.buildProbeEntries(probes.Line1Registry, d, true), cols, bulletSep)
-
-	lines := []string{l0, l1}
+	// Phase 7.5: each header line can be dropped wholesale via
+	// [general].header_line0 / header_line1, independently of the per-probe
+	// [widgets] toggles — turning the row off costs a status-line row rather
+	// than leaving an empty one behind.
+	var lines []string
+	appendHeader := func(hidden bool, line string) {
+		if hidden {
+			return
+		}
+		// A header line whose every probe is switched off (or invisible for this
+		// session) renders as an empty string. Emitting it would still cost a
+		// terminal row while carrying nothing, so it is dropped: turning off the
+		// last widget on a line removes the line, rather than leaving a gap.
+		if strings.TrimSpace(format.StripMarkers(line)) == "" {
+			return
+		}
+		lines = append(lines, line)
+	}
+	appendHeader(a.Config.HideHeaderLine0,
+		renderer.FitLine(a.buildProbeEntries(probes.Line0Registry, d, false), cols, bulletSep))
+	appendHeader(a.Config.HideHeaderLine1,
+		renderer.FitLine(a.buildProbeEntries(probes.Line1Registry, d, true), cols, bulletSep))
 
 	// Phase 6.9.e (T-13): the cache-aggregate row (line 2) is removed from the
 	// Standard (table) output — its data now lives in the per-turn table columns
@@ -130,6 +149,11 @@ type timedRow struct {
 //
 // Returns nil when there are no turns.
 func (a *Assembler) perTurnTable(d probes.Data, cols int) []string {
+	// [general].table_rows = 0 — the whole per-turn block is off. Checked before
+	// any row building so the work is skipped entirely, not just the output.
+	if a.Config.HideTable {
+		return nil
+	}
 	if d.Session == nil || len(d.Session.Turns) == 0 {
 		return nil
 	}
@@ -171,6 +195,9 @@ func (a *Assembler) perTurnTable(d probes.Data, cols int) []string {
 	}
 
 	b := renderer.NewBuilder(cols)
+	b.HideLegend = a.Config.HideTableLegend
+	b.HideFrame = a.Config.HideTableFrame
+	b.HideDividers = a.Config.HideTableDividers
 	raw := b.RenderUnifiedRows(rows)
 	if raw == "" {
 		return nil
@@ -554,6 +581,8 @@ func (a *Assembler) hint(d probes.Data) string {
 		StartIndex: d.HintStart,
 		Events:     filteredEvents,
 		UpdateHint: d.UpdateHint,
+		// [general].tutorial_hints = false — the tips stop rotating, alerts stay.
+		SuppressTutorials: a.Config.HideHints,
 	}
 	// now was initialised above for the recency filter; reuse it here.
 	// (hypothesis insurance #3: deterministic clock for tests)

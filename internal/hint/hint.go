@@ -64,6 +64,12 @@ type Widget struct {
 	// the tutorial tips have all cycled out, the row keeps showing it instead of
 	// hiding, so a pending update does not disappear forever.
 	UpdateHint string
+
+	// SuppressTutorials turns off the rotating tutorial tips
+	// ([general].tutorial_hints = false). Critical alerts and a pending update
+	// notice still surface: those report a condition the user needs to act on,
+	// whereas the tips are the part that becomes noise once they are learned.
+	SuppressTutorials bool
 }
 
 // hints returns the active hint slice, falling back to DefaultHints. When an
@@ -93,6 +99,12 @@ func (w *Widget) Pick(now time.Time) string {
 	// Critical alert overrides rotation and hide.
 	if alert := BuildAlert(w.Events); alert != "" {
 		return alert
+	}
+
+	// Tutorials switched off: skip the rotation entirely. A pending update is
+	// still sticky, so the row costs a line only when it has something to say.
+	if w.SuppressTutorials {
+		return w.UpdateHint
 	}
 
 	hs := w.hints()

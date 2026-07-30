@@ -4,6 +4,22 @@ All notable changes to `cc-probeline` are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Per-model limits, not just the total** — the status line now shows the weekly window for each model that has its own, right beside the account-wide bars: `5h: █░░░░░░░░░ ↻ 0h:59m · 7d: ▒░░░░░░░░░ ↻ 6d.8h • Fable 7d: ▒░░░░░░░░░ ↻ 6d.8h`. Every bar is labelled, so the scoped figure can never be mistaken for the total. Claude Code never puts these windows in the status-line payload — only `five_hour` and `seven_day` — so the numbers come from the usage snapshot it caches in `~/.claude.json`, the same source its `/usage` screen reads. Rendering stays fully offline: the file is read-only, no credentials are touched, and nothing leaves the machine. Accounts without a model-scoped limit see no change. Toggle with `[widgets] quota_model`.
+
+- **Take back your vertical space** — every row the status line draws can now be switched off from the config, and the keys stack. `table_legend` drops the `# role model cache r/w …` labels and their separator (2 rows), `table_frame` drops the `┌─┐ / └─┘` borders and the outer bars (2 rows), `header_line0` / `header_line1` drop the account and session headers, and `table_dividers` quietens the inner `│` separators without costing a row. The full eight-row dashboard can be taken down to a single line of quota bars. All keys default to `true`, so an existing config renders exactly as before.
+- **`table_rows = 0`** — 0 is now a valid table size and means "no per-turn table at all": rows, legend and frame go together. Previously 0 was silently raised to 1.
+- **CLI toggles for the new keys** — `cc-probeline table-legend on|off`, `table-frame`, `table-dividers`, and `header-line 0|1 on|off`, alongside the existing `table-rows`. All five show up in `cc-probeline check-config`.
+- **`scripts/build-frames.sh`** — regenerates every README screenshot from the code itself (emitter → ANSI → SVG → PNG), so the images always show what the current build renders instead of being screenshotted by hand. The code already referenced this script; it had never been committed. It also flattens the status line's faint attribute into explicit dark colours first, because the SVG renderers ignore SGR 2 and would otherwise paint history rows as brightly as the current request, losing the distinction the table is built around.
+
+### Fixed
+
+- **`tutorial_hints = false` now actually works** — the key, its `cc-probeline hints off` command and its `check-config` entry all existed, but nothing read the value at render time, so the rotating tips kept appearing. Switching them off now stops the rotation; genuine alerts (config errors, expired cache, a pending update) still surface, since those report something you need to act on.
+- **No more blank status-line rows** — a header line whose every segment was switched off used to be emitted as an empty line, costing a terminal row while showing nothing. It is now dropped, so the `[widgets]` toggles reclaim the row as well.
+
 ## [0.1.3] — 2026-06-17
 
 ### Changed

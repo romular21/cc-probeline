@@ -18,7 +18,9 @@ func TestRegistry_Complete(t *testing.T) {
 		len(probes.Line2Registry) +
 		len(probes.SubagentRegistry)
 
-	const want = 9 // Phase 6.9.e: cache (Line2) probe removed — row 2 dropped (T-13).
+	// Phase 6.9.e: cache (Line2) probe removed — row 2 dropped (T-13).
+	// Phase 7.6: quota_model added to Line0 (per-model weekly windows).
+	const want = 10
 	if total != want {
 		t.Errorf("registry total: want %d probes registered, got %d "+
 			"(Line0=%d Line1=%d Line2=%d Subagent=%d)",
@@ -50,8 +52,9 @@ func TestRegistry_TrivialGetters(t *testing.T) {
 		"model":    0,
 		"ctx":      1,
 		"time":     1,
-		"quota":    1,
-		"project":  2,
+		"quota":       1,
+		"quota_model": 1,
+		"project":     2,
 		"git":      2,
 		"cost":     1,
 		"email":    2,

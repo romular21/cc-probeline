@@ -20,11 +20,24 @@ func ToProbesConfig(cfg Config) probes.Config {
 		// these flags internally (cache.go:46, subagent.go:34). Hardcoding true
 		// keeps probe visibility unchanged without cascading deletes into probes/.
 		CacheEnabled:    true,
-		QuotaEnabled:    cfg.Widgets.Quota,
-		GitEnabled:      cfg.Widgets.Git,
-		SubagentEnabled: true,
+		QuotaEnabled:      cfg.Widgets.Quota,
+		GitEnabled:        cfg.Widgets.Git,
+		SubagentEnabled:   true,
+		ModelQuotaEnabled: cfg.Widgets.QuotaModel,
 
 		TableRows: cfg.General.TableRows,
+
+		// Positive config keys → negative runtime flags, so that a zero-value
+		// probes.Config still renders the original full-chrome layout.
+		// table_rows = 0 is the explicit "no table" setting; the loader starts
+		// from Default() (10), so an omitted key can never reach this branch.
+		HideTable:         cfg.General.TableRows == 0,
+		HideTableLegend:   !cfg.General.TableLegend,
+		HideTableFrame:    !cfg.General.TableFrame,
+		HideTableDividers: !cfg.General.TableDividers,
+		HideHeaderLine0:   !cfg.General.HeaderLine0,
+		HideHeaderLine1:   !cfg.General.HeaderLine1,
+		HideHints:         !cfg.General.TutorialHints,
 
 		Email: cfg.Probes.Email.Address,
 

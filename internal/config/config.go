@@ -50,8 +50,39 @@ type General struct {
 	RefreshIntervalHint int `toml:"refresh_interval_hint" json:"refresh_interval_hint"`
 
 	// TableRows is the maximum number of per-turn rows shown in the subagent
-	// table. Defaults to 10. SetTableRows caps the value at 40.
+	// table. Defaults to 10. SetTableRows clamps the value to [0, 40].
+	// 0 is a valid setting and means "no table at all": the per-turn block
+	// (data rows, legend and frame alike) is dropped from the status line.
 	TableRows int `toml:"table_rows" json:"table_rows"`
+
+	// TableLegend shows the legend row ("# role model cache r/w out ~cost
+	// tool") under the per-turn table, together with its ├─┼─┤ separator.
+	// Default true. Set false to reclaim two status-line rows once the column
+	// order is familiar.
+	TableLegend bool `toml:"table_legend" json:"table_legend"`
+
+	// TableFrame draws the table frame: the ┌─┬─┐ / └─┴─┘ border lines and the
+	// outer left/right bars on every row. Default true. Set false to reclaim
+	// two more status-line rows; the columns stay aligned without it.
+	TableFrame bool `toml:"table_frame" json:"table_frame"`
+
+	// TableDividers draws the inner vertical column separators (│) and the
+	// group-boundary notch glyphs (├ ┼ ┤) that mark where one orchestrator
+	// request ends and the next begins. Default true. Set false for a
+	// whitespace-separated table; costs no rows, only visual noise.
+	TableDividers bool `toml:"table_dividers" json:"table_dividers"`
+
+	// HeaderLine0 shows the first status-line row — the account/workspace
+	// header carrying email, project and the 5h/7d quota bars. Default true.
+	// Set false to drop the whole row regardless of the individual [widgets]
+	// toggles.
+	HeaderLine0 bool `toml:"header_line0" json:"header_line0"`
+
+	// HeaderLine1 shows the second status-line row — the session header
+	// carrying model, git, context, cost and elapsed time. Default true.
+	// Set false to drop the whole row regardless of the individual [widgets]
+	// toggles.
+	HeaderLine1 bool `toml:"header_line1" json:"header_line1"`
 
 	// Mode selects the display mode: "standard" (default) or "super-compact".
 	// CORE reads this field to switch the assembler layout. Setters write it
@@ -94,6 +125,13 @@ type Widgets struct {
 
 	// Quota shows the daily/monthly quota usage if available.
 	Quota bool `toml:"quota" json:"quota"`
+
+	// QuotaModel shows the per-model weekly windows (e.g. "Fable 7d: ▒░░░░ ↻ 6d")
+	// next to the account-wide bars. The figures come from the usage snapshot
+	// Claude Code caches in ~/.claude.json, since the status-line payload carries
+	// only account-wide limits. Renders nothing when the account has no
+	// model-scoped limit. Default true.
+	QuotaModel bool `toml:"quota_model" json:"quota_model"`
 
 	// Git shows the current git branch and dirty-state indicator.
 	Git bool `toml:"git" json:"git"`

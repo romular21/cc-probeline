@@ -14,10 +14,11 @@ import (
 // tableRowsCap is the maximum value accepted by SetTableRows.
 const tableRowsCap = 40
 
-// tableRowsFloor is the minimum value accepted by SetTableRows. Values below it
-// (including 0 and negatives) are raised to this floor so the table always
-// shows at least one row.
-const tableRowsFloor = 1
+// tableRowsFloor is the minimum value accepted by SetTableRows. Negative values
+// are raised to this floor. 0 is deliberately inside the accepted range: it is
+// the "no table at all" setting, which drops the per-turn block (rows, legend
+// and frame) from the status line.
+const tableRowsFloor = 0
 
 // validModes lists the accepted values for SetMode.
 var validModes = []string{"standard", "super-compact"}
@@ -88,10 +89,12 @@ func SetWidget(path, name string, value bool) error {
 		cfg.Widgets.Ctx = value
 	case "quota":
 		cfg.Widgets.Quota = value
+	case "quota_model":
+		cfg.Widgets.QuotaModel = value
 	case "git":
 		cfg.Widgets.Git = value
 	default:
-		return fmt.Errorf("unknown widget %q: accepted names are model, effort, cost, project, email, time, ctx, quota, git", name)
+		return fmt.Errorf("unknown widget %q: accepted names are model, effort, cost, project, email, time, ctx, quota, quota_model, git", name)
 	}
 	return marshalAndWrite(path, cfg)
 }
@@ -109,9 +112,9 @@ func SetRefreshInterval(path string, seconds int) error {
 }
 
 // SetTableRows atomically updates [general].table_rows in the TOML at path.
-// The value is clamped to [tableRowsFloor, tableRowsCap] = [1, 40]: values above
-// 40 are capped to 40, and values below 1 (including 0 and negatives) are raised
-// to 1 so the table always shows at least one row.
+// The value is clamped to [tableRowsFloor, tableRowsCap] = [0, 40]: values above
+// 40 are capped to 40, and negatives are raised to 0. 0 is a valid setting and
+// turns the per-turn table off entirely.
 // Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
 func SetTableRows(path string, rows int) error {
 	if rows > tableRowsCap {
@@ -125,6 +128,59 @@ func SetTableRows(path string, rows int) error {
 		return err
 	}
 	cfg.General.TableRows = rows
+	return marshalAndWrite(path, cfg)
+}
+
+// SetTableLegend atomically updates [general].table_legend in the TOML at path.
+// Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
+func SetTableLegend(path string, value bool) error {
+	cfg, err := readOrDefault(path)
+	if err != nil {
+		return err
+	}
+	cfg.General.TableLegend = value
+	return marshalAndWrite(path, cfg)
+}
+
+// SetTableFrame atomically updates [general].table_frame in the TOML at path.
+// Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
+func SetTableFrame(path string, value bool) error {
+	cfg, err := readOrDefault(path)
+	if err != nil {
+		return err
+	}
+	cfg.General.TableFrame = value
+	return marshalAndWrite(path, cfg)
+}
+
+// SetTableDividers atomically updates [general].table_dividers in the TOML at
+// path. Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
+func SetTableDividers(path string, value bool) error {
+	cfg, err := readOrDefault(path)
+	if err != nil {
+		return err
+	}
+	cfg.General.TableDividers = value
+	return marshalAndWrite(path, cfg)
+}
+
+// SetHeaderLine atomically updates [general].header_line0 or header_line1 in the
+// TOML at path. n selects the line (0 or 1); any other value returns an error
+// and leaves the file unchanged.
+// Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
+func SetHeaderLine(path string, n int, value bool) error {
+	if n != 0 && n != 1 {
+		return fmt.Errorf("invalid header line %d: accepted values are 0, 1", n)
+	}
+	cfg, err := readOrDefault(path)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		cfg.General.HeaderLine0 = value
+	} else {
+		cfg.General.HeaderLine1 = value
+	}
 	return marshalAndWrite(path, cfg)
 }
 

@@ -29,8 +29,37 @@ nerd_font = false
 refresh_interval_hint = 5
 
 # Maximum number of per-turn rows in the cost table. Capped at 40.
+# 0 is valid and means "no per-turn table at all" — rows, legend and frame go.
 # Default: 10
 table_rows = 10
+
+# ─── Vertical footprint ──────────────────────────────────────────────────────
+# Each key below removes whole terminal rows from the status line, and they
+# stack. All default to true, so an existing config keeps the original layout.
+
+# Legend row under the table ("# role model cache r/w out ~cost tool") plus the
+# ├─┼─┤ separator above it. Worth 2 rows.
+# Default: true
+table_legend = true
+
+# Table frame: the ┌─┬─┐ / └─┴─┘ border lines and the outer bar on every row.
+# Worth 2 more rows; the columns stay aligned without it.
+# Default: true
+table_frame = true
+
+# Inner vertical column separators (│) and the group-boundary notches (├ ┼ ┤)
+# that mark where one orchestrator request ends. Costs no rows — set false only
+# to quieten the table visually.
+# Default: true
+table_dividers = true
+
+# First header line: email • project • quota bars.
+# Default: true
+header_line0 = true
+
+# Second header line: model • ctx • cost • time • git.
+# Default: true
+header_line1 = true
 
 [widgets]
 # Per-widget on/off toggles. All true by default.
@@ -43,6 +72,13 @@ time     = true
 ctx      = true
 quota    = true
 git      = true
+
+# Per-model weekly rate-limit windows, shown next to the account-wide bars as
+# "Fable 7d: ▒░░░░░░░░░ ↻ 6d.8h". These windows are not part of the status-line
+# payload, so the figures come from the usage snapshot Claude Code caches in
+# ~/.claude.json (read-only, offline — no credentials, no network). Renders
+# nothing when the account has no model-scoped limit.
+quota_model = true
 
 [thresholds]
 # Session cost warning threshold ($). 0 disables.

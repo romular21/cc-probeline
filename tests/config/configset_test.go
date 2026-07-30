@@ -387,8 +387,9 @@ func TestSetTableRows_ExactlyAtCap(t *testing.T) {
 	}
 }
 
-// T-STR5: SetTableRows(0) is raised to the floor (1).
-func TestSetTableRows_Floor_0_Becomes_1(t *testing.T) {
+// T-STR5: SetTableRows(0) is preserved — 0 is the "no table at all" setting,
+// not an under-range value to be clamped away (Phase 7.5).
+func TestSetTableRows_Zero_IsPreserved(t *testing.T) {
 	tmp := t.TempDir()
 	p := filepath.Join(tmp, "config.toml")
 
@@ -397,13 +398,13 @@ func TestSetTableRows_Floor_0_Becomes_1(t *testing.T) {
 	}
 
 	cfg := loadField(t, p)
-	if cfg.General.TableRows != 1 {
-		t.Errorf("TableRows after floor: got %d, want 1", cfg.General.TableRows)
+	if cfg.General.TableRows != 0 {
+		t.Errorf("TableRows after set to 0: got %d, want 0", cfg.General.TableRows)
 	}
 }
 
-// T-STR6: SetTableRows(-5) (negative) is raised to the floor (1).
-func TestSetTableRows_Floor_Negative_Becomes_1(t *testing.T) {
+// T-STR6: SetTableRows(-5) (negative) is raised to the floor (0).
+func TestSetTableRows_Floor_Negative_Becomes_0(t *testing.T) {
 	tmp := t.TempDir()
 	p := filepath.Join(tmp, "config.toml")
 
@@ -412,13 +413,13 @@ func TestSetTableRows_Floor_Negative_Becomes_1(t *testing.T) {
 	}
 
 	cfg := loadField(t, p)
-	if cfg.General.TableRows != 1 {
-		t.Errorf("TableRows after floor: got %d, want 1", cfg.General.TableRows)
+	if cfg.General.TableRows != 0 {
+		t.Errorf("TableRows after floor: got %d, want 0", cfg.General.TableRows)
 	}
 }
 
-// T-STR7: SetTableRows(1) — exactly at floor, no change.
-func TestSetTableRows_ExactlyAtFloor(t *testing.T) {
+// T-STR7: SetTableRows(1) — the smallest table that still shows a row.
+func TestSetTableRows_One_IsPreserved(t *testing.T) {
 	tmp := t.TempDir()
 	p := filepath.Join(tmp, "config.toml")
 

@@ -3,6 +3,7 @@ package probes
 import (
 	"time"
 
+	"github.com/labzink/cc-probeline/internal/claudejson"
 	"github.com/labzink/cc-probeline/internal/parser"
 	"github.com/labzink/cc-probeline/internal/renderer"
 	"github.com/labzink/cc-probeline/internal/state"
@@ -48,6 +49,19 @@ type Data struct {
 	// ExtraCacheEvents lets main inject synthetic alerts (e.g. config load
 	// errors) that are not derived from session/subagent JSONL data. Phase 6.
 	ExtraCacheEvents []parser.CacheEvent
+
+	// ScopedQuota holds the per-model weekly rate-limit windows read from the
+	// usage snapshot Claude Code caches in ~/.claude.json (the status-line
+	// payload carries only account-wide limits). Populated by main via
+	// claudejson.ScopedWeekly; nil when unavailable, which hides the probe.
+	// Passed through Data rather than read inside the probe so that rendering
+	// stays a pure function of its input — the render path keeps no global
+	// state, and tests stay hermetic.
+	ScopedQuota []claudejson.ScopedLimit
+
+	// ScopedQuotaFetchedAt is when Claude Code last refreshed that snapshot.
+	// Zero when unknown; used to age the figures out with an "as of" suffix.
+	ScopedQuotaFetchedAt time.Time
 
 	// Phase 6.8.a: delta-based cost fields.
 	// SessionTotal is the cost incurred in this session (ccTotal − BaselineCost).
@@ -123,10 +137,44 @@ type Config struct {
 	GitEnabled      bool
 	SubagentEnabled bool
 
+	// ModelQuotaEnabled shows the per-model weekly windows read from Claude
+	// Code's cached usage snapshot ([widgets].quota_model). Set from
+	// config.Widgets.QuotaModel via ToProbesConfig.
+	ModelQuotaEnabled bool
+
 	// TableRows is the maximum number of per-turn rows shown in the subagent
 	// table. Set from config.General.TableRows via ToProbesConfig. When 0 the
 	// assembler applies its own default (10). Capped at 40 by SetTableRows.
+	// A user-configured 0 is signalled by HideTable, not by this field, so that
+	// a zero-value Config keeps the Phase 4-5 default of showing the table.
 	TableRows int
+
+	// Chrome toggles for the per-turn table and the two header lines. All are
+	// stated negatively so that the zero value reproduces the original layout:
+	// callers that build a Config directly (tests, Phase 4-5 code paths) get
+	// the full table and both header lines without setting anything.
+	// ToProbesConfig inverts the positive [general] keys into these fields.
+	//
+	// HideTable drops the per-turn block entirely ([general].table_rows = 0).
+	HideTable bool
+	// HideTableLegend drops the legend row and its ├─┼─┤ separator
+	// ([general].table_legend = false).
+	HideTableLegend bool
+	// HideTableFrame drops the ┌─┬─┐ / └─┴─┘ border lines and the outer
+	// left/right row bars ([general].table_frame = false).
+	HideTableFrame bool
+	// HideTableDividers replaces the inner column separators and the
+	// group-boundary notch glyphs with spaces ([general].table_dividers = false).
+	HideTableDividers bool
+	// HideHeaderLine0 drops the account/workspace header line
+	// ([general].header_line0 = false).
+	HideHeaderLine0 bool
+	// HideHeaderLine1 drops the session header line
+	// ([general].header_line1 = false).
+	HideHeaderLine1 bool
+	// HideHints drops the rotating tutorial tips ([general].tutorial_hints =
+	// false). Alerts and the update notice still surface.
+	HideHints bool
 
 	// Per-probe values (Phase 6 — from config.Probes).
 	// Email is the override address for the Email probe. When empty the probe

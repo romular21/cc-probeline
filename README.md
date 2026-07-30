@@ -5,7 +5,9 @@
 
 # See where it leaks. Stop paying for it.
 
-A live dashboard right in your status line — surfacing what Claude Code hides: the cost of every turn, what your subagents spend, how long your cache stays alive, plus the usual limits, context and git.
+A live dashboard right in your status line — surfacing what Claude Code hides: the cost of every turn, what your subagents spend, how long your cache stays alive, plus current 5h/7d and Fable 7d limits, context and git.
+
+And it takes exactly as much room as you let it: every row is configurable, down to a single line.
 
 **Stop overpaying for inefficiency you can't see. Spend your limits on purpose.**
 
@@ -28,13 +30,15 @@ Most status lines count things — tokens, turns, running agents. **The probe pr
 - **Extra usage in money, not percent** — past 100% of your plan, the overage shows up in dollars before the invoice does.
 - **Prices that stay correct** — your dollars are only as honest as the price table behind them. cc-probeline refreshes its rates over the network — one optional, opt-out check a day, never during render — so when Anthropic changes prices your totals follow within a day, no reinstall. Offline or opted out, it falls back to the table baked into the build.
 - **5h / 7d limits with reset clocks** — watch them fill, know exactly when they free up.
+- **Per-model limits, not just the total** — Claude Code shows a separate weekly window for models that have one, but never puts it in the status-line payload: you only see it by opening `/usage`. cc-probeline reads it from the snapshot Claude Code caches locally and puts it on the line next to the account-wide bars — `Fable 7d: ▒░░░░░░░░░ ↻ 6d.8h` — every bar labelled, so the scoped figure is never mistaken for the total.
+- **Fits the room you give it** — the full dashboard is eight rows; the legend, the borders, the per-turn table and either header line each switch off from the config, and they stack. Take it down to one line of quota bars, or leave it exactly as it ships. Every key defaults to the full layout.
 - **Colour-coded zones** — numbers shift colour as they enter warning and critical territory, so the line catches your eye exactly when it should.
 - Plus the table stakes: model, context, git, session time.
 
 ![Turn-by-turn cost table: orchestrator and subagent rows side by side, cache read/write per turn, per-turn dollars, config hint at the bottom](assets/screenshots/02.png)
 **Every turn lands on its own line — orchestrator and subagents alike — priced as it happens. Finally you see where every dollar of your reasoning actually goes.**
 
-**Built to fit your terminal.** Don't like a segment, the colours, or the width? The `/cc-probeline-config` wizard walks you through it and writes the config for you — no hand-editing TOML. (That's the hint at the bottom of the dashboard above.)
+**Built to fit your terminal.** Don't like a segment, the colours, the width — or how many rows it eats? The `/cc-probeline-config` wizard walks you through it and writes the config for you — no hand-editing TOML. (That's the hint at the bottom of the dashboard above.)
 
 ![Status line past the plan limit: +$3.80 extra usage shown in red next to a filled 5h bar](assets/screenshots/03.png)
 **The moment you cross 100%, you'll see it — and the extra bill stays under your control.**
@@ -104,6 +108,7 @@ Prints `Installation OK`.
 
 - Claude Code on macOS, Linux, or Windows.
 - For the quota segment (5h / 7d limits, extra usage): Claude Code ≥ 2.1.80, which passes `rate_limits` in the status-line payload. On older versions the quota segment is hidden; everything else works normally.
+- For the per-model segment (`Fable 7d: …`): a plan that actually has a model-scoped weekly limit. These windows never reach the status-line payload, so the figures are read from the usage snapshot Claude Code caches in `~/.claude.json` — locally, read-only, no credentials and no network. No scoped limit on the account means the segment simply does not render.
 
 ### Configuration
 
@@ -113,43 +118,74 @@ Run the interactive wizard from inside Claude Code:
 /cc-probeline-config
 ```
 
-It walks you through probes, table size and colours — and writes the TOML for you. Or edit `~/.config/cc-probeline/config.toml` directly (validate with `cc-probeline check-config`):
+It walks you through probes, table size and colours — and writes the TOML for you. Or edit `~/.config/cc-probeline/config.toml` directly (validate with `cc-probeline check-config`).
+
+Every field is optional and every default is the full layout, so you only ever write the lines you want to change:
 
 ```toml
 [general]
-table_rows = 10             # rows in the per-turn cost table (max 40)
-no_color   = false          # true = plain monochrome output
+table_rows     = 10   # per-turn cost table: rows to keep (0 = no table, max 40)
+table_legend   = true # the "# role model cache r/w …" labels      (2 rows)
+table_frame    = true # ┌─┐ / └─┘ borders and the outer bars        (2 rows)
+table_dividers = true # inner │ separators — costs no rows, only visual noise
+header_line0   = true # email • project • quota
+header_line1   = true # model • ctx • cost • time • git
+tutorial_hints = true # false stops the rotating tips; alerts still show
 
-[widgets]                   # flip any segment on/off
-model = true
-effort = true
-cost = true
-ctx = true
-quota = true
-git = true
-project = true
-email = true
-time = true
-
-[thresholds]
-cost_budget_usd = 25        # turn the cost segment red past $25 (0 = off)
-
-# Colour flips for the context bar — yellow / orange / red.
-# Must strictly increase; bad values fall back to these defaults.
-ctx_notice_ratio   = 0.50
-ctx_warn_ratio     = 0.70
-ctx_critical_ratio = 0.90
-
-# Same three flips per rate-limit window. The 7d window mirrors these keys
-# as quota_7d_notice_ratio / _warn_ratio / _critical_ratio.
-quota_5h_notice_ratio   = 0.50
-quota_5h_warn_ratio     = 0.70
-quota_5h_critical_ratio = 0.90
+[widgets]             # flip any single segment off
+email = false
 ```
 
-Config is read in precedence order: `CC_PROBELINE_CONFIG=/path` (explicit override) → `.cc-probeline.toml` in the current repo (project-local) → `~/.config/cc-probeline/config.toml` (global). Every field is optional; missing fields use the built-in defaults, and an invalid value never breaks the status line — it falls back to the default.
+Config is read in precedence order: `CC_PROBELINE_CONFIG=/path` (explicit override) → `.cc-probeline.toml` in the current repo (project-local) → `~/.config/cc-probeline/config.toml` (global). An invalid value never breaks the status line — it falls back to the default.
 
-Full reference: [`scripts/config.toml.example`](scripts/config.toml.example).
+Full reference — colour thresholds, cost budget, every widget: [`scripts/config.toml.example`](scripts/config.toml.example).
+
+#### Three layouts to start from
+
+The keys stack, so the dashboard scales from eight rows down to one. Pick whichever trade you want and paste it.
+
+**As it ships — 8 rows.** Everything on: quota header, session header, and the last 10 turns priced in a bordered table with column labels. Nothing to configure.
+
+**Sensible middle ground — 5 rows.** Keeps every number that costs you money and drops only the decoration around it:
+
+```toml
+[general]
+table_rows     = 3      # the last few turns, still priced
+table_legend   = false  # column labels stop paying rent once you know them
+table_frame    = false  # columns stay aligned without the borders
+tutorial_hints = false
+
+[widgets]
+email   = false         # you know whose account this is
+project = false         # your terminal title already says it
+```
+
+```
+5h: █░░░░░░░░░ ↻ 0h:43m · 7d: ▒░░░░░░░░░ ↻ 6d.8h • Fable 7d: ▒░░░░░░░░░ ↻ 6d.8h
+opus-5 • cost: $4.22 • time: 08:34 • ⎇ main ⚠ 10
+196 │ orchestrator │ opus-5 │ 326K     1K │   109 │   $0.18 │ Read          ⏱ 60m
+195 │ orchestrator │ opus-5 │ 325K    883 │   255 │   $0.18 │ thinking...
+194 ┼ orchestrator ┼ opus-5 ┼ 320K     5K ┼   825 ┼   $0.23 ┼ thinking...
+```
+
+**Limits only — 1 row.** For when the status line should answer exactly one question, *how much is left*, and get out of the way:
+
+```toml
+[general]
+table_rows     = 0      # no per-turn table at all
+header_line1   = false  # drop model • ctx • cost • time • git
+tutorial_hints = false
+
+[widgets]
+email   = false
+project = false
+```
+
+```
+5h: █░░░░░░░░░ ↻ 0h:43m · 7d: ▒░░░░░░░░░ ↻ 6d.8h • Fable 7d: ▒░░░░░░░░░ ↻ 6d.8h
+```
+
+A header line whose every segment is switched off is dropped entirely rather than left blank, so the widget toggles reclaim the row too.
 
 ### Updating
 
@@ -187,8 +223,6 @@ cc-probeline is a personal experiment: can you hand programming over to AI **ent
 
 This is the answer. Claude wrote all of it; the operator never touched the code. What the operator owned was everything that decides whether it's any good: the vision, the spec, the design direction, and every single call — reviewed detail by detail until the result was exactly right. A few weeks of spare-time work — competitor research, a written spec, phased design and implementation. The commit history is public and reads like a build log: you can watch the product take shape, phase by phase.
 
-**Contributing:** bug reports and ideas are welcome — open an issue. Code contributions are possible, but they're not the primary path: the codebase is developed through an AI pipeline in tight collaboration with the author, so pull requests need to fit that workflow. When in doubt, open an issue first.
+**Contributing:** bug reports and ideas are welcome — open an issue.
 
-If cc-probeline ends up saving you money, you can send a little of it back: [GitHub Sponsors](https://github.com/sponsors/labzink)
-
-MIT License.
+MIT License. This is a fork of [cc-probeline](https://github.com/labzink/cc-probeline) by Konstantin Labzin, extended with configurable vertical footprint and per-model quota windows.

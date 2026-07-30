@@ -56,6 +56,20 @@ type Row [7]Cell
 type Builder struct {
 	cols         [7]int
 	terminalCols int // target terminal width (default 80)
+
+	// Chrome toggles, all stated negatively so the zero value keeps the full
+	// bordered layout every existing caller expects. The assembler sets them
+	// from the [general] table_* config keys.
+	//
+	// HideLegend drops the legend row and the ├─┼─┤ separator above it.
+	HideLegend bool
+	// HideFrame drops the ┌─┬─┐ / └─┴─┘ border lines and the outer left/right
+	// bars on every row. Columns stay aligned via padCell either way.
+	HideFrame bool
+	// HideDividers replaces the inner column separators (│) and the
+	// group-boundary notch glyphs (├ ┼ ┤) with spaces of the same width, so
+	// column alignment is preserved.
+	HideDividers bool
 }
 
 // NewBuilder returns a Builder with default layout using the given terminal
