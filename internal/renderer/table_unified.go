@@ -82,11 +82,17 @@ func (b *Builder) RenderUnifiedRows(rows []UnifiedRow) string {
 	cols := b.effectiveCols()
 	colWidths := cols[:]
 
-	topBorder := hlineSlice(colWidths, '┌', '┬', '┐', '─', nil)
-	bottomBorder := hlineSlice(colWidths, '└', '┴', '┘', '─', nil)
+	// With dividers off the horizontal rules lose their column joins too,
+	// otherwise a ┬ would hang above a gap where no │ follows.
+	topJoin, bottomJoin, legendJoin := '┬', '┴', '┼'
+	if b.HideDividers {
+		topJoin, bottomJoin, legendJoin = '─', '─', '─'
+	}
+	topBorder := hlineSlice(colWidths, '┌', topJoin, '┐', '─', nil)
+	bottomBorder := hlineSlice(colWidths, '└', bottomJoin, '┘', '─', nil)
 	// Legend separator (T-5): full-line ├─┼─┤ above the legend row.
 	// F2 fix: right corner is ┤ (continuous border), not ┐.
-	legendSep := hlineSlice(colWidths, '├', '┼', '┤', '─', nil)
+	legendSep := hlineSlice(colWidths, '├', legendJoin, '┤', '─', nil)
 
 	// Pre-compute which rows are anchor rows (notch boundary).
 	// An orch row at index i is an anchor iff the next orch row (j > i, not
@@ -96,8 +102,10 @@ func (b *Builder) RenderUnifiedRows(rows []UnifiedRow) string {
 	isAnchor := computeAnchorRows(rows)
 
 	var sb strings.Builder
-	sb.WriteString(topBorder)
-	sb.WriteByte('\n')
+	if !b.HideFrame {
+		sb.WriteString(topBorder)
+		sb.WriteByte('\n')
+	}
 
 	for i, r := range rows {
 		line := b.renderUnifiedDataRow(r, colWidths, isAnchor[i])
@@ -117,12 +125,20 @@ func (b *Builder) RenderUnifiedRows(rows []UnifiedRow) string {
 	}
 
 	// Legend: full-line ├─┼─┤ separator immediately before the legend row (T-5).
-	sb.WriteString(legendSep)
-	sb.WriteByte('\n')
-	sb.WriteString(renderUnifiedLegend(colWidths))
-	sb.WriteByte('\n')
-	sb.WriteString(bottomBorder)
-	sb.WriteByte('\n')
+	// The separator is a frame element (its ├ ┤ corners only line up with the
+	// outer bars), so it goes away with the frame; the labels themselves stay.
+	if !b.HideLegend {
+		if !b.HideFrame {
+			sb.WriteString(legendSep)
+			sb.WriteByte('\n')
+		}
+		sb.WriteString(b.renderUnifiedLegend(colWidths))
+		sb.WriteByte('\n')
+	}
+	if !b.HideFrame {
+		sb.WriteString(bottomBorder)
+		sb.WriteByte('\n')
+	}
 
 	result := sb.String()
 	slog.Debug("renderer.RenderUnifiedRows complete", "lines", strings.Count(result, "\n"))
@@ -200,28 +216,36 @@ func (b *Builder) renderUnifiedDataRow(r UnifiedRow, colWidths []int, isAnchor b
 	cells := b.unifiedCells(r, colWidths)
 	n := len(cells)
 
+	// Notch glyphs are a divider feature: with dividers off an anchor row is
+	// drawn like any other. The outer bars belong to the frame instead, so the
+	// two toggles are applied independently below.
+	notch := isAnchor && !b.HideDividers
+
 	if r.Dim {
 		// History rows: whole line wrapped in {{dim}}…{{reset}}.
 		// F14: replace inner {{reset}} with {{reset}}{{dim}} so dim survives
 		// across coloured cells (e.g. {{color:cyan}}role{{reset}} → dim killed).
 		// Inside the dim wrapper, use plain box-drawing runes (the outer dim
 		// already applies). Notch anchor rows use ├/┼/┤ instead of │.
+		leading, inner, trailing := '│', '│', '│'
+		if notch {
+			leading, inner, trailing = '├', '┼', '┤'
+		}
+		if b.HideDividers {
+			// A space keeps the column grid on the same offsets as a │ would.
+			inner = ' '
+		}
+
 		var sb strings.Builder
-		if isAnchor {
-			sb.WriteRune('├')
-		} else {
-			sb.WriteRune('│')
+		if !b.HideFrame {
+			sb.WriteRune(leading)
 		}
 		for i := range cells {
 			sb.WriteString(padCell(cells[i].Content, colWidths[i], cells[i].Align))
-			if isAnchor {
-				if i < n-1 {
-					sb.WriteRune('┼')
-				} else {
-					sb.WriteRune('┤')
-				}
-			} else {
-				sb.WriteRune('│')
+			if i < n-1 {
+				sb.WriteRune(inner)
+			} else if !b.HideFrame {
+				sb.WriteRune(trailing)
 			}
 		}
 		// F14: re-dim after every inner {{reset}} so dim survives coloured cells.
@@ -234,19 +258,24 @@ func (b *Builder) renderUnifiedDataRow(r UnifiedRow, colWidths []int, isAnchor b
 	leading := dimBar
 	inner := dimBar
 	trailing := dimBar
-	if isAnchor {
+	if notch {
 		leading = dimNotchLeading
 		inner = dimNotchInner
 		trailing = dimNotchTrailing
 	}
+	if b.HideDividers {
+		inner = " "
+	}
 
 	var sb strings.Builder
-	sb.WriteString(leading)
+	if !b.HideFrame {
+		sb.WriteString(leading)
+	}
 	for i := range cells {
 		sb.WriteString(padCell(cells[i].Content, colWidths[i], cells[i].Align))
 		if i < n-1 {
 			sb.WriteString(inner)
-		} else {
+		} else if !b.HideFrame {
 			sb.WriteString(trailing)
 		}
 	}
@@ -332,16 +361,29 @@ func unifiedRoleColour(role string, isSidechain bool) string {
 }
 
 // renderUnifiedLegend renders the legend content row with column header labels.
-// The cache column label is "cache r/w" (T-31). Uses {{dim}}│{{reset}} dividers.
-func renderUnifiedLegend(colWidths []int) string {
+// The cache column label is "cache r/w" (T-31). Uses {{dim}}│{{reset}} dividers,
+// honouring the same frame/divider toggles as the data rows so the labels stay
+// aligned with the columns above them.
+func (b *Builder) renderUnifiedLegend(colWidths []int) string {
 	labels := [7]string{"#", "role", "model", "cache r/w", "out", "~cost", "tool"}
 	aligns := [7]Align{AlignRight, AlignLeft, AlignLeft, AlignLeft, AlignRight, AlignRight, AlignLeft}
 
+	inner := dimBar
+	if b.HideDividers {
+		inner = " "
+	}
+
 	var sb strings.Builder
-	sb.WriteString(dimBar)
+	if !b.HideFrame {
+		sb.WriteString(dimBar)
+	}
 	for i, lbl := range labels {
 		sb.WriteString(padCell(lbl, colWidths[i], aligns[i]))
-		sb.WriteString(dimBar)
+		if i < len(labels)-1 {
+			sb.WriteString(inner)
+		} else if !b.HideFrame {
+			sb.WriteString(dimBar)
+		}
 	}
 	return sb.String()
 }

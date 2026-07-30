@@ -2,6 +2,7 @@
 bin/
 dist/
 build/
+.memsearch
 
 # Go test binaries
 *.test

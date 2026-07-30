@@ -23,6 +23,10 @@ type Config struct {
 	// CostBudgetUSD=0 disables budget warnings. Ratios are in the [0,1] range.
 	Thresholds Thresholds `toml:"thresholds" json:"thresholds"`
 
+	// Colors overrides individual palette roles. Omitted roles keep the
+	// built-in colour; an unusable value is skipped rather than applied.
+	Colors Colors `toml:"colors" json:"colors"`
+
 	// Probes groups per-probe configuration that is not covered by the widget
 	// toggles above. Currently only the Email probe requires extra settings.
 	Probes Probes `toml:"probes" json:"probes"`
@@ -50,8 +54,78 @@ type General struct {
 	RefreshIntervalHint int `toml:"refresh_interval_hint" json:"refresh_interval_hint"`
 
 	// TableRows is the maximum number of per-turn rows shown in the subagent
-	// table. Defaults to 10. SetTableRows caps the value at 40.
+	// table. Defaults to 10. SetTableRows clamps the value to [0, 40].
+	// 0 is a valid setting and means "no table at all": the per-turn block
+	// (data rows, legend and frame alike) is dropped from the status line.
 	TableRows int `toml:"table_rows" json:"table_rows"`
+
+	// TableLegend shows the legend row ("# role model cache r/w out ~cost
+	// tool") under the per-turn table, together with its ├─┼─┤ separator.
+	// Default true. Set false to reclaim two status-line rows once the column
+	// order is familiar.
+	TableLegend bool `toml:"table_legend" json:"table_legend"`
+
+	// TableFrame draws the table frame: the ┌─┬─┐ / └─┴─┘ border lines and the
+	// outer left/right bars on every row. Default true. Set false to reclaim
+	// two more status-line rows; the columns stay aligned without it.
+	TableFrame bool `toml:"table_frame" json:"table_frame"`
+
+	// TableDividers draws the inner vertical column separators (│) and the
+	// group-boundary notch glyphs (├ ┼ ┤) that mark where one orchestrator
+	// request ends and the next begins. Default true. Set false for a
+	// whitespace-separated table; costs no rows, only visual noise.
+	TableDividers bool `toml:"table_dividers" json:"table_dividers"`
+
+	// HeaderLine0 shows the first status-line row — the account/workspace
+	// header carrying email, project and the 5h/7d quota bars. Default true.
+	// Set false to drop the whole row regardless of the individual [widgets]
+	// toggles.
+	HeaderLine0 bool `toml:"header_line0" json:"header_line0"`
+
+	// ModelVariantTag keeps the bracketed variant tag that large-context models
+	// carry in their id ("opus-5[1m]"). Default true. Set false to drop it: the
+	// context segment beside it already spells the window out ("437K/1000K"),
+	// so the tag repeats information the line is about to give anyway.
+	ModelVariantTag bool `toml:"model_variant_tag" json:"model_variant_tag"`
+
+	// BarStyle picks the glyphs the Full-level progress bars are drawn with. A
+	// terminal line has one height, so a visually shorter bar can only come
+	// from glyphs that occupy less of it:
+	//
+	//	"block" — █ ▒ ░, the original, filling the cell (default)
+	//	"line"  — ━ ╾ ─, a rule through the middle of the line
+	//	"low"   — ▄ ▂ ▁, sitting on the baseline
+	//	"dot"   — ● ◐ ○, echoing the effort indicator
+	//	"none"  — no bar; the percentage stands in for it
+	//
+	// Any other value falls back to "block".
+	BarStyle string `toml:"bar_style" json:"bar_style"`
+
+	// EffortStyle selects how the reasoning-effort indicator is drawn next to
+	// the model name: "glyph" (default) draws the filled-circle icon — ○ low,
+	// ◔ medium, ◑ high, ◕ xhigh, ● max — and "word" spells the level out. The
+	// icon is compact but needs a legend to read; the word needs none.
+	// Any other value falls back to "glyph".
+	EffortStyle string `toml:"effort_style" json:"effort_style"`
+
+	// BarWidth is how many segments the Full-level progress bars use — the
+	// quota windows, the per-model windows and the context bar alike, so they
+	// always match each other. Accepts 10 (default, 5% precision) or 5 (half
+	// the width, 10% precision); any other value falls back to 10.
+	BarWidth int `toml:"bar_width" json:"bar_width"`
+
+	// HeaderMerge joins the two header rows into one whenever their combined
+	// width still fits the terminal, falling back to two rows when it does not.
+	// Default false, which keeps the original two-row header. Set true to stop
+	// spending a second terminal row on content that already fits beside the
+	// first.
+	HeaderMerge bool `toml:"header_merge" json:"header_merge"`
+
+	// HeaderLine1 shows the second status-line row — the session header
+	// carrying model, git, context, cost and elapsed time. Default true.
+	// Set false to drop the whole row regardless of the individual [widgets]
+	// toggles.
+	HeaderLine1 bool `toml:"header_line1" json:"header_line1"`
 
 	// Mode selects the display mode: "standard" (default) or "super-compact".
 	// CORE reads this field to switch the assembler layout. Setters write it
@@ -94,6 +168,13 @@ type Widgets struct {
 
 	// Quota shows the daily/monthly quota usage if available.
 	Quota bool `toml:"quota" json:"quota"`
+
+	// QuotaModel shows the per-model weekly windows (e.g. "Fable 7d: ▒░░░░ ↻ 6d")
+	// next to the account-wide bars. The figures come from the usage snapshot
+	// Claude Code caches in ~/.claude.json, since the status-line payload carries
+	// only account-wide limits. Renders nothing when the account has no
+	// model-scoped limit. Default true.
+	QuotaModel bool `toml:"quota_model" json:"quota_model"`
 
 	// Git shows the current git branch and dirty-state indicator.
 	Git bool `toml:"git" json:"git"`

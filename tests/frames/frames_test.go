@@ -23,11 +23,16 @@ package frames_test
 //
 // Frame → scenario map (readme-brainstorm.md §5/§7, composed by build-frames.sh):
 //
-//	frame 1 (full dashboard + hero framing) → s1-rich-baseline        (cols 120)
+//	frame 1 (full dashboard + hero framing) → s1-rich-baseline        (cols 140)
 //	frame 2 (table close-up)                → s1-rich-baseline        (crop table)
-//	frame 3 (extra-usage red)               → s4-quota-100-extra-commit
-//	frame 4 (quota warning)                 → s3-quota-split-ctx-warn
+//	frame 3 (extra-usage red)               → s4-quota-100-extra-commit (cols 150)
+//	frame 4 (quota warning)                 → s3-quota-split-ctx-warn   (cols 150)
 //	frame 5 (cache rebuild close-up)        → s5-cache-rebuild (truncated fable)
+//
+// Widths were raised in Phase 7.6: the per-model quota segment ("Fable 7d: …")
+// lengthens line 0, and at the old 120/130 the header collapsed to its Compact
+// form — dropping the "5h:" / "7d:" labels, which is exactly the ambiguity the
+// scoped segment exists to avoid. Keep them wide enough for the Full form.
 
 import (
 	"context"
@@ -37,6 +42,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/labzink/cc-probeline/internal/claudejson"
 	"github.com/labzink/cc-probeline/internal/config"
 	"github.com/labzink/cc-probeline/internal/cost"
 	"github.com/labzink/cc-probeline/internal/mode"
@@ -99,6 +105,12 @@ type scenario struct {
 	commitBadge int
 	events      []parser.CacheEvent
 
+	// scopedQuota are the per-model weekly windows ("Fable 7d: …"). In production
+	// these come from Claude Code's cached usage snapshot; frames pass them in
+	// directly so the segment is deterministic and does not depend on the
+	// account the screenshots are taken on.
+	scopedQuota []claudejson.ScopedLimit
+
 	model     stdin.Model
 	effort    stdin.Effort
 	hintStart int // hint.DefaultHints index this frame opens on (0 = Reasoning legend)
@@ -125,9 +137,21 @@ func scenarios() []scenario {
 	// the largest cache-read row in the table.
 	ctxOpus1M := ctxWindow(1_000_000, 323_000)
 
+	// Every frame carries the same Fable weekly window, so the per-model segment
+	// appears wherever the header does — it is on by default in production, and a
+	// frame without it would sell a status line nobody actually gets. The
+	// percentage is deliberately low: the story of these frames is the ACCOUNT
+	// limit filling up, and a second loud bar would compete with it.
+	fableWeekly := []claudejson.ScopedLimit{
+		{Model: "Fable", Percent: 34, ResetsAt: frameNow.Add(4*24*time.Hour + 6*time.Hour)},
+	}
+
 	master := func(s scenario) scenario {
 		if s.fixture == "" {
 			s.fixture, s.subDir = fxMaster, fxMasterDir
+		}
+		if s.scopedQuota == nil {
+			s.scopedQuota = fableWeekly
 		}
 		if s.model.ID == "" {
 			s.model = opus
@@ -149,7 +173,7 @@ func scenarios() []scenario {
 	return []scenario{
 		// frame 1: full dashboard at full width. Hint = Reasoning legend (#0).
 		master(scenario{
-			name: "s1-rich-baseline", cols: 120, cfg: rich,
+			name: "s1-rich-baseline", cols: 140, cfg: rich,
 			git: gitDirty, ctx: ctxOpus1M, effort: stdin.Effort{Level: "high"},
 			rl: rl(30, 75, 3*time.Hour, 2*24*time.Hour), // 5h 30% (round) · 7d 75% ⇒ orange, ~2d
 		}),
@@ -157,21 +181,21 @@ func scenarios() []scenario {
 		// the config tip (#5: ⚙ /cc-probeline-config) so it doesn't repeat the
 		// Reasoning legend frame 1 already shows.
 		master(scenario{
-			name: "s2-table-config-hint", cols: 120, cfg: rich,
+			name: "s2-table-config-hint", cols: 140, cfg: rich,
 			git: gitDirty, ctx: ctxOpus1M, effort: stdin.Effort{Level: "high"},
 			rl:        rl(30, 75, 3*time.Hour, 2*24*time.Hour),
 			hintStart: 5,
 		}),
 		// frame 4: quota warning header — rendered WIDE (full bars). Model = Sonnet 4.6.
 		master(scenario{
-			name: "s3-quota-split-ctx-warn", cols: 130, cfg: rich,
+			name: "s3-quota-split-ctx-warn", cols: 150, cfg: rich,
 			git: gitClean, ctx: ctxWarn, model: sonnet46,
 			rl:     rl(98, 72, 8*time.Minute, 30*time.Hour),
 			events: []parser.CacheEvent{{Type: parser.SubagentCacheExpired, Timestamp: frameNow, Detail: "conceptualist"}},
 		}),
 		// frame 3: extra-usage header — WIDE. Overage +$3.80, session $48.27, time 52:17.
 		master(scenario{
-			name: "s4-quota-100-extra-commit", cols: 130, cfg: rich,
+			name: "s4-quota-100-extra-commit", cols: 150, cfg: rich,
 			git: gitClean, ctx: ctxNormal,
 			rl:          rl(100, 100, 2*time.Hour, 24*time.Hour),
 			extraActive: true, extraUSD: 3.80, commitBadge: 2,
@@ -224,6 +248,9 @@ func TestEmitANSIFrames(t *testing.T) {
 			d, cfg := scenarioData(t, sc)
 			a := statusline.Assembler{Mode: sc.mode, Theme: th, Cols: sc.cols, Config: cfg}
 			out := renderer.Apply(a.Render(d), th)
+			if os.Getenv("CC_PROBELINE_EMIT_FLATTEN_DIM") == "1" {
+				out = flattenDim(out)
+			}
 			path := filepath.Join(dir, sc.name+".ansi")
 			if err := os.WriteFile(path, []byte(out), 0o644); err != nil {
 				t.Fatalf("write %s: %v", path, err)
@@ -286,6 +313,10 @@ func scenarioData(t *testing.T, sc scenario) (probes.Data, probes.Config) {
 		ExtraActive:      sc.extraActive,
 		ExtraUSD:         sc.extraUSD,
 		HintStart:        sc.hintStart,
+		ScopedQuota:      sc.scopedQuota,
+		// Pinned to frameNow so the "as of" staleness suffix never appears in a
+		// screenshot — the frames must show the steady state.
+		ScopedQuotaFetchedAt: frameNow,
 	}
 	d.SessionTotal = cost.SessionTotal(st, sc.ccTotalUSD)
 	d.SessionDurMS = cost.SessionDuration(st, sc.durMS)

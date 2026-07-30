@@ -280,6 +280,26 @@ func collectConfigFields(cfg, def *config.Config, verbose bool) []configField {
 	add("general.nerd_font", cfg.General.NerdFont, def.General.NerdFont)
 	add("general.refresh_interval_hint", cfg.General.RefreshIntervalHint, def.General.RefreshIntervalHint)
 	add("general.table_rows", cfg.General.TableRows, def.General.TableRows)
+	add("general.table_legend", cfg.General.TableLegend, def.General.TableLegend)
+	add("general.table_frame", cfg.General.TableFrame, def.General.TableFrame)
+	add("general.table_dividers", cfg.General.TableDividers, def.General.TableDividers)
+	add("general.header_line0", cfg.General.HeaderLine0, def.General.HeaderLine0)
+	add("general.header_line1", cfg.General.HeaderLine1, def.General.HeaderLine1)
+	add("general.header_merge", cfg.General.HeaderMerge, def.General.HeaderMerge)
+	add("general.bar_width", cfg.General.BarWidth, def.General.BarWidth)
+	add("general.bar_style", cfg.General.BarStyle, def.General.BarStyle)
+
+	// Colours.
+	add("colors.green", cfg.Colors.Green, def.Colors.Green)
+	add("colors.amber", cfg.Colors.Amber, def.Colors.Amber)
+	add("colors.sage", cfg.Colors.Sage, def.Colors.Sage)
+	add("colors.yellow", cfg.Colors.Yellow, def.Colors.Yellow)
+	add("colors.orange", cfg.Colors.Orange, def.Colors.Orange)
+	add("colors.red", cfg.Colors.Red, def.Colors.Red)
+	add("colors.cyan", cfg.Colors.Cyan, def.Colors.Cyan)
+	add("colors.magenta", cfg.Colors.Magenta, def.Colors.Magenta)
+	add("general.effort_style", cfg.General.EffortStyle, def.General.EffortStyle)
+	add("general.model_variant_tag", cfg.General.ModelVariantTag, def.General.ModelVariantTag)
 	add("general.mode", cfg.General.Mode, def.General.Mode)
 
 	// Widgets.
@@ -291,6 +311,7 @@ func collectConfigFields(cfg, def *config.Config, verbose bool) []configField {
 	add("widgets.time", cfg.Widgets.Time, def.Widgets.Time)
 	add("widgets.ctx", cfg.Widgets.Ctx, def.Widgets.Ctx)
 	add("widgets.quota", cfg.Widgets.Quota, def.Widgets.Quota)
+	add("widgets.quota_model", cfg.Widgets.QuotaModel, def.Widgets.QuotaModel)
 	add("widgets.git", cfg.Widgets.Git, def.Widgets.Git)
 
 	// Thresholds.

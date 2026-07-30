@@ -1,5 +1,5 @@
 me@example.com • cc-probeline • 5h: ███▒░░░░░░ ↻ 3h:0m · 7d: █▒░░░░░░░░ ↻ 5d.0h
-opus-4-7 ◑ • ctx ███░░░░░░░ 60K/200K (30%) • cost: $11.39 • time: 20:17 • ⎇ agent/dev/phase-7 ⚠3
+opus-4-7 ◑ • ctx: ███░░░░░░░ 60K/200K (30%) • cost: $11.39 • time: 20:17 • ⎇ agent/dev/phase-7 ⚠3
 ┌────┬──────────────┬────────────┬─────────────┬───────┬─────────┬─────────────────────────────────┐
 │ 15 │ orchestrator │ opus-4-7   │ 278K    900 │   880 │   $0.32 │ thinking...                     │ ⏱ 57m
 │ 14 │ orchestrator │ opus-4-7   │ 276K     1K │   760 │   $0.31 │ Read                            │

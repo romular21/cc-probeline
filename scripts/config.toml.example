@@ -29,8 +29,95 @@ nerd_font = false
 refresh_interval_hint = 5
 
 # Maximum number of per-turn rows in the cost table. Capped at 40.
+# 0 is valid and means "no per-turn table at all" — rows, legend and frame go.
 # Default: 10
 table_rows = 10
+
+# ─── Vertical footprint ──────────────────────────────────────────────────────
+# Each key below removes whole terminal rows from the status line, and they
+# stack. All default to true, so an existing config keeps the original layout.
+
+# Legend row under the table ("# role model cache r/w out ~cost tool") plus the
+# ├─┼─┤ separator above it. Worth 2 rows.
+# Default: true
+table_legend = true
+
+# Table frame: the ┌─┬─┐ / └─┴─┘ border lines and the outer bar on every row.
+# Worth 2 more rows; the columns stay aligned without it.
+# Default: true
+table_frame = true
+
+# Inner vertical column separators (│) and the group-boundary notches (├ ┼ ┤)
+# that mark where one orchestrator request ends. Costs no rows — set false only
+# to quieten the table visually.
+# Default: true
+table_dividers = true
+
+# First header line: email • project • quota bars.
+# Default: true
+header_line0 = true
+
+# Join the two header lines into one whenever they fit the terminal width,
+# falling back to two rows when they do not. Default: false (two rows always).
+header_merge = false
+
+# Segment count for the Full-level progress bars — quota, per-model quota and
+# context alike, so they always match. Accepts 3-20.
+#
+# 5 and 10 pre-round the value, so the bar holds still as a percentage drifts;
+# at 5 that costs resolution, and a window below 10% reads as empty. Any other
+# width is drawn proportionally without rounding, so small values stay visible:
+# at 8 segments a 9% window reads "▒░░░░░░░".
+# Default: 10
+bar_width = 10
+
+# Which glyphs the bars are drawn with. A terminal line has one height, so a
+# visually lighter bar can only come from glyphs that occupy less of the cell:
+#
+#   "block" — █ ▒ ░, the original, filling the cell
+#   "line"  — ━ ╾ ─, a rule through the middle of the line
+#   "low"   — ▄ ▂ ▁, sitting on the baseline
+#   "dot"   — ● ◐ ○, echoing the effort indicator
+#   "none"  — no bar at all; the percentage stands in for it (5h: 9% ↻ 6d.7h)
+#
+# Default: "block"
+bar_style = "block"
+
+# How the reasoning-effort indicator is drawn next to the model name:
+#   "glyph" — filled-circle icon: ○ low · ◔ medium · ◑ high · ◕ xhigh · ● max
+#   "word"  — the level spelled out ("xhigh"), which needs no legend
+# Default: "glyph"
+effort_style = "glyph"
+
+# Keep the bracketed variant tag large-context models carry in their id
+# ("opus-5[1m]"). Set false to drop it — the context segment beside it already
+# spells the window out ("437K/1000K").
+# Default: true
+model_variant_tag = true
+
+# Second header line: model • ctx • cost • time • git.
+# Default: true
+header_line1 = true
+
+[colors]
+# Repoint any palette role. Omitted roles keep the built-in colour; an unusable
+# value is skipped rather than applied, so a typo costs one colour, not the line.
+#
+# Two accepted forms:
+#   "#d7a55f"     hex, emitted as a 24-bit truecolour escape
+#   "38;5;179"    raw SGR parameters, emitted verbatim between ESC[ and m
+#
+# green   healthy band on bars, below the notice threshold
+# sage    healthy band for values rendered as text (bar_style = "none")
+# amber   notice band for values rendered as text (bar_style = "none")
+# yellow  notice band elsewhere, TTL and agent labels
+# orange  warn band
+# red     critical band
+# cyan    git branch and the "orchestrator" label
+# magenta reasoning-effort indicator
+#
+# sage   = "38;5;108"
+# amber  = "38;5;179"
 
 [widgets]
 # Per-widget on/off toggles. All true by default.
@@ -43,6 +130,13 @@ time     = true
 ctx      = true
 quota    = true
 git      = true
+
+# Per-model weekly rate-limit windows, shown next to the account-wide bars as
+# "Fable 7d: ▒░░░░░░░░░ ↻ 6d.8h". These windows are not part of the status-line
+# payload, so the figures come from the usage snapshot Claude Code caches in
+# ~/.claude.json (read-only, offline — no credentials, no network). Renders
+# nothing when the account has no model-scoped limit.
+quota_model = true
 
 [thresholds]
 # Session cost warning threshold ($). 0 disables.

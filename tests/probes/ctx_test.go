@@ -39,7 +39,7 @@ func TestCtx_Visible_Empty(t *testing.T) {
 //
 // Phase 6.6 expected per level (§2.2):
 //
-//	Full:    "ctx ██████░░░░ 128K/200K (64%)"  (ProgressBar10: floor(64/5)*5=60% → 6 full + 4 empty)
+//	Full:    "ctx: ██████░░░░ 128K/200K (64%)"  (ProgressBar10: floor(64/5)*5=60% → 6 full + 4 empty)
 //	Compact: "███░░ 128K/200K"                 (ProgressBar: roundNearest10(64%)=60% → ███░░)
 //	Minimal: "128K/200K"
 func TestCtx_Render_AllLevels(t *testing.T) {
@@ -65,7 +65,7 @@ func TestCtx_Render_AllLevels(t *testing.T) {
 		want  string
 	}{
 		// Phase 6.6: Full uses ProgressBar10 (10 runes); Compact uses ProgressBar (5 runes).
-		{"full", probes.LevelFull, "ctx ██████░░░░ 128K/200K (64%)"},
+		{"full", probes.LevelFull, "ctx: ██████░░░░ 128K/200K (64%)"},
 		{"compact", probes.LevelCompact, "███░░ 128K/200K"},
 		{"minimal", probes.LevelMinimal, "128K/200K"},
 	}
@@ -88,11 +88,11 @@ func TestCtx_Render_AllLevels(t *testing.T) {
 //
 //	Case 1: 15% usage
 //	  Size=200000, used=30000 → 15% → floor(15/5)*5=15% → "█▒░░░░░░░░" (10 runes)
-//	  Full: "ctx █▒░░░░░░░░ 30K/200K (15%)"
+//	  Full: "ctx: █▒░░░░░░░░ 30K/200K (15%)"
 //
 //	Case 2: 95% usage
 //	  Size=200000, used=190000 → 95% → floor(95/5)*5=95% → "█████████▒" (10 runes)
-//	  Full: "ctx █████████▒ 190K/200K (95%)"
+//	  Full: "ctx: █████████▒ 190K/200K (95%)"
 //
 // Compact still uses ProgressBar (5 runes) with roundNearest10:
 //
@@ -115,7 +115,7 @@ func TestCtx_Render_Percent(t *testing.T) {
 			size:  200000,
 			used:  30000,
 			level: probes.LevelFull,
-			want:  "ctx █▒░░░░░░░░ 30K/200K (15%)",
+			want:  "ctx: █▒░░░░░░░░ 30K/200K (15%)",
 		},
 		{
 			// Compact uses ProgressBar with roundNearest10: 15% → 20% → █░░░░
@@ -131,7 +131,7 @@ func TestCtx_Render_Percent(t *testing.T) {
 			size:  200000,
 			used:  190000,
 			level: probes.LevelFull,
-			want:  "ctx █████████▒ 190K/200K (95%)",
+			want:  "ctx: █████████▒ 190K/200K (95%)",
 		},
 		{
 			name:  "95pct minimal",
@@ -167,7 +167,7 @@ func TestCtx_Render_Percent(t *testing.T) {
 // ---------------------------------------------------------------------------
 // T-E2: TestCtx_NumbersColoured (Phase 6.8.e)
 //
-// Spec T-22: Full output = "ctx <bar> <usedK>/<sizeK>" where usedK is
+// Spec T-22: Full output = "ctx: <bar> <usedK>/<sizeK>" where usedK is
 // wrapped with a semantic colour marker; no "%" character; bar preserved.
 //
 // Colour rules (AnsiEnabled=true, markers resolved later by renderer.Apply):

@@ -213,6 +213,11 @@ func (p *QuotaProbe) Render(d Data, c Config, t renderer.Theme, level Level) str
 	// critical the number is omitted — the bar carries the signal. Phase 6.95.h:
 	// at pct ≥ 100 the number is dropped and the extra-usage block stands in.
 	pctSuffix := func(pct, critical float64, roundUp bool) string {
+		// bar_style = "none" already prints the number in the bar's place;
+		// appending it again would show the same percentage twice.
+		if barStyleNoBar(c) {
+			return ""
+		}
 		if pct < critical*100.0 || pct >= 100.0 {
 			return ""
 		}
@@ -297,10 +302,8 @@ func (p *QuotaProbe) Render(d Data, c Config, t renderer.Theme, level Level) str
 
 	switch level {
 	case LevelFull:
-		bar5h := quotaUsageColor(pct5h, n5, w5, c5, t) +
-			renderer.ProgressBar10(pct5h) + colourReset
-		bar7d := quotaUsageColor(pct7d, n7, w7, c7, t) +
-			renderer.ProgressBar10(pct7d) + colourReset
+		bar5h := usageValueColour(pct5h, n5, w5, c5, c, t) + usageBar(pct5h, c) + colourReset
+		bar7d := usageValueColour(pct7d, n7, w7, c7, c, t) + usageBar(pct7d, c) + colourReset
 		val5h := boldRedWrap(pct5h, fmt.Sprintf("%s%s %s", bar5h, pctSuffix(pct5h, c5, true), reset5h))
 		val7d := boldRedWrap(pct7d, fmt.Sprintf("%s%s %s", bar7d, pctSuffix(pct7d, c7, false), reset7d))
 		if extraOn5h {
@@ -312,9 +315,9 @@ func (p *QuotaProbe) Render(d Data, c Config, t renderer.Theme, level Level) str
 		return fmt.Sprintf("5h: %s · 7d: %s%s", val5h, val7d, ageSuffix)
 	case LevelCompact:
 		bar5h := quotaUsageColor(pct5h, n5, w5, c5, t) +
-			renderer.ProgressBar(pct5h) + colourReset
+			compactBar(pct5h, c) + colourReset
 		bar7d := quotaUsageColor(pct7d, n7, w7, c7, t) +
-			renderer.ProgressBar(pct7d) + colourReset
+			compactBar(pct7d, c) + colourReset
 		val5h := boldRedWrap(pct5h, fmt.Sprintf("%s%s %s", bar5h, pctSuffix(pct5h, c5, true), reset5h))
 		val7d := boldRedWrap(pct7d, fmt.Sprintf("%s%s %s", bar7d, pctSuffix(pct7d, c7, false), reset7d))
 		if extraOn5h {

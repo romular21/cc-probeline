@@ -15,6 +15,19 @@ var effortIcon = map[string]string{
 	"off":    "",
 }
 
+// effortWord maps effort level strings to their spelled-out name, used when
+// [general].effort_style = "word". The circle icons encode the level by how
+// full the circle is, which is compact but needs a legend to read; the word
+// needs none.
+var effortWord = map[string]string{
+	"low":    "low",
+	"medium": "medium",
+	"high":   "high",
+	"xhigh":  "xhigh",
+	"max":    "max",
+	"off":    "",
+}
+
 // EffortProbe renders the effort level as a Unicode circle icon.
 // All three display levels render the same icon (effort is P0; icon is never dropped).
 type EffortProbe struct{}
@@ -34,8 +47,8 @@ func (p *EffortProbe) Visible(d Data, c Config) bool {
 
 // Render returns the Unicode icon for the effort level, colour-wrapped per
 // B3 §5 (see effortGlyph). Returns "" for "off" or unrecognised levels.
-func (p *EffortProbe) Render(d Data, _ Config, t renderer.Theme, level Level) string {
-	return effortGlyph(d.Stdin.Effort.Level, t.AnsiEnabled)
+func (p *EffortProbe) Render(d Data, c Config, t renderer.Theme, level Level) string {
+	return effortMark(d.Stdin.Effort.Level, t.AnsiEnabled, c.EffortWord)
 }
 
 // effortColorMarker returns the opening colour marker token for the given effort
@@ -70,7 +83,17 @@ func effortColorMarker(lvl string) string {
 //
 // Returns "" for "off" or unrecognised levels (caller drops the segment).
 func effortGlyph(lvl string, ansiEnabled bool) string {
-	icon, ok := effortIcon[lvl]
+	return effortMark(lvl, ansiEnabled, false)
+}
+
+// effortMark renders the effort indicator as either the circle icon or the
+// spelled-out level, applying the same colour treatment to both.
+func effortMark(lvl string, ansiEnabled, asWord bool) string {
+	table := effortIcon
+	if asWord {
+		table = effortWord
+	}
+	icon, ok := table[lvl]
 	if !ok || icon == "" {
 		return ""
 	}

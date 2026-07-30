@@ -17,6 +17,9 @@ var (
 		&EmailProbe{},
 		&ProjectProbe{},
 		&QuotaProbe{},
+		// Per-model weekly windows sit right after the account-wide bars so the
+		// scoped figure reads as a continuation of the limits, not a new topic.
+		&ModelQuotaProbe{},
 	}
 
 	// Line1Registry holds probes rendered on the second status line (row 1).

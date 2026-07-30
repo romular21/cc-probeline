@@ -152,3 +152,49 @@ func ProgressBarColor(percent float64, th Theme) string {
 		return th.Colors.Red
 	}
 }
+
+// ProgressBarN returns an n-segment progress bar for the given percentage.
+// Input is clamped to [0, 100]; n below 1 is treated as 1.
+//
+// Each segment covers 100/n percentage points and is drawn full when the value
+// fills it, half when it is partly filled, and empty otherwise. Unlike
+// ProgressBar and ProgressBar10 the value is NOT pre-rounded, so a window well
+// below one segment's worth still shows as half rather than vanishing — at
+// eight segments a 9% window reads "▒░░░░░░░" instead of empty.
+//
+// ProgressBar (5) and ProgressBar10 (10) are kept as the renderers for those
+// two widths: they pre-floor to a multiple of 10 and 5 respectively, which
+// makes the bar hold still while a percentage drifts, and every existing
+// layout and snapshot is built on that exact behaviour.
+func ProgressBarN(percent float64, n int) string {
+	if n < 1 {
+		n = 1
+	}
+	if percent < 0 {
+		percent = 0
+	}
+	if percent > 100 {
+		percent = 100
+	}
+
+	segWidth := 100.0 / float64(n)
+
+	bar := make([]rune, n)
+	remaining := percent
+	for i := 0; i < n; i++ {
+		seg := remaining
+		if seg > segWidth {
+			seg = segWidth
+		}
+		switch {
+		case seg <= 0:
+			bar[i] = '░'
+		case seg < segWidth:
+			bar[i] = '▒'
+		default:
+			bar[i] = '█'
+		}
+		remaining -= segWidth
+	}
+	return string(bar)
+}

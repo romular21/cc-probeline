@@ -13,6 +13,8 @@ type ColorScheme struct {
 	Red     string // cache miss, TTL <5m, cost >90% budget
 	Green   string // progress <50%, healthy cost
 	Orange  string // progress 70-90%; 256-colour code (only exception to 16-colour rule)
+	Amber   string // notice band on values rendered as text; softer than ANSI yellow
+	Sage    string // healthy band on values rendered as text; calmer than ANSI green
 	Magenta string // [high] effort indicator
 	Italic  string // hint widget
 	Dim     string // muted colour for secondary text
@@ -56,6 +58,18 @@ func DefaultPalette() ColorScheme {
 		// Orange: only 256-colour exception — no orange in standard 16-colour ANSI.
 		// Code 208 is a mid-brightness orange, readable on light and dark backgrounds.
 		Orange: "\x1b[38;5;208m",
+
+		// Amber: the notice band for values rendered as text rather than as a
+		// bar. Standard ANSI yellow is mixed with the terminal's bright yellow on
+		// most themes and reads as acid on a bare number; 179 is the same hue
+		// with the glare taken out.
+		Amber: "\x1b[38;5;179m",
+
+		// Sage: the healthy band for values rendered as text. ANSI green is both
+		// cool and loud on a bare number; 108 is a warmer, quieter green that
+		// carries the same meaning without shouting — and without needing the dim
+		// attribute, which took the number below the threshold of noticing.
+		Sage: "\x1b[38;5;108m",
 
 		// DimGrey maps to the same dim attribute; terminal theme determines the shade.
 		DimGrey: "\x1b[2m",

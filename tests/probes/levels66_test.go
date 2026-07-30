@@ -351,11 +351,11 @@ func TestCtx66_Levels(t *testing.T) {
 	}
 
 	// Full: bar must be 10 runes (ProgressBar10).
-	// Full format: "ctx <bar> <usedK>/<sizeK> (<pct>%)"
+	// Full format: "ctx: <bar> <usedK>/<sizeK> (<pct>%)"
 	// Expected bar: 64% → floor to 60% → ██████░░░░
 	gotFull := p.Render(d, cfg, th, probes.LevelFull)
-	// The bar follows "ctx " and ends at the space before the label.
-	const ctxPrefix = "ctx "
+	// The bar follows "ctx: " and ends at the space before the label.
+	const ctxPrefix = "ctx: "
 	if !strings.HasPrefix(gotFull, ctxPrefix) {
 		t.Fatalf("Render(Full): want prefix %q, got %q", ctxPrefix, gotFull)
 	}

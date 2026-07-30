@@ -1,5 +1,3 @@
-
-
 {{dim}}┌────┬──────────────┬────────────┬─────────────┬───────┬─────────┬─────────────┐{{reset}}
 {{dim}}│{{reset}} 15 {{dim}}│{{reset}} {{color:cyan}}orchestrator{{reset}} {{dim}}│{{reset}} opus-4-7   {{dim}}│{{reset}} 278K    900 {{dim}}│{{reset}}   880 {{dim}}│{{reset}}   $0.32 {{dim}}│{{reset}} thinking... {{dim}}│{{reset}}
 {{dim}}│{{reset}} 14 {{dim}}│{{reset}} {{color:cyan}}orchestrator{{reset}} {{dim}}│{{reset}} opus-4-7   {{dim}}│{{reset}} 276K     1K {{dim}}│{{reset}}   760 {{dim}}│{{reset}}   $0.31 {{dim}}│{{reset}} Read        {{dim}}│{{reset}}
