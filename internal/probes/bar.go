@@ -54,7 +54,7 @@ func barStyleNoBar(c Config) bool { return c.BarStyle == barStyleNone }
 // alert, and at 9% of a weekly window there is nothing to alert about. So the
 // bands are re-weighted for text:
 //
-//	below notice   dim green — present, deliberately quiet
+//	below notice   sage — a calm green, at full strength
 //	notice..warn   soft amber rather than ANSI yellow
 //	warn..critical orange, unchanged
 //	critical and up red, unchanged
@@ -73,7 +73,10 @@ func textValueColour(pct, notice, warn, critical float64, t renderer.Theme) stri
 	case pct >= notice*100.0:
 		return t.Colors.Amber
 	default:
-		return t.Colors.Dim + t.Colors.Green
+		// Not dimmed: layering the dim attribute over an already-muted colour
+		// pushed the number below the threshold of being readable at a glance.
+		// The calm comes from the hue, not from fading it out.
+		return t.Colors.Sage
 	}
 }
 

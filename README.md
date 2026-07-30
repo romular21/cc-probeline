@@ -141,7 +141,7 @@ tutorial_hints = true # false stops the rotating tips; alerts still show
 email = false
 
 [colors]              # repoint any palette role: "#rrggbb" or raw SGR
-amber = "38;5;179"    # green · amber · yellow · orange · red · cyan · magenta
+sage  = "38;5;108"    # green · sage · amber · yellow · orange · red · cyan · magenta
 ```
 
 Config is read in precedence order: `CC_PROBELINE_CONFIG=/path` (explicit override) → `.cc-probeline.toml` in the current repo (project-local) → `~/.config/cc-probeline/config.toml` (global). An invalid value never breaks the status line — it falls back to the default.

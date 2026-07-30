@@ -107,7 +107,8 @@ header_line1 = true
 #   "#d7a55f"     hex, emitted as a 24-bit truecolour escape
 #   "38;5;179"    raw SGR parameters, emitted verbatim between ESC[ and m
 #
-# green   healthy band, below the notice threshold
+# green   healthy band on bars, below the notice threshold
+# sage    healthy band for values rendered as text (bar_style = "none")
 # amber   notice band for values rendered as text (bar_style = "none")
 # yellow  notice band elsewhere, TTL and agent labels
 # orange  warn band
@@ -115,7 +116,7 @@ header_line1 = true
 # cyan    git branch and the "orchestrator" label
 # magenta reasoning-effort indicator
 #
-# green  = "#7fb069"
+# sage   = "38;5;108"
 # amber  = "38;5;179"
 
 [widgets]

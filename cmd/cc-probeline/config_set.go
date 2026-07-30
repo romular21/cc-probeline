@@ -368,7 +368,7 @@ func runColor(args []string) int {
 
 func runColorImpl(args []string, stdout, stderr io.Writer) int {
 	if len(args) < 2 {
-		fmt.Fprintln(stderr, `Usage: cc-probeline color <green|amber|yellow|orange|red|cyan|magenta> <"#rrggbb"|SGR>`)
+		fmt.Fprintln(stderr, `Usage: cc-probeline color <green|sage|amber|yellow|orange|red|cyan|magenta> <"#rrggbb"|SGR>`)
 		return 64
 	}
 	path := config.GlobalConfigPath()

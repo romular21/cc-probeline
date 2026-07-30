@@ -35,6 +35,9 @@ type Colors struct {
 	// Amber is the notice band for values rendered as text (bar_style = "none").
 	Amber string `toml:"amber" json:"amber"`
 
+	// Sage is the healthy band for values rendered as text (bar_style = "none").
+	Sage string `toml:"sage" json:"sage"`
+
 	// Yellow is the notice band elsewhere, plus TTL and agent labels.
 	Yellow string `toml:"yellow" json:"yellow"`
 
@@ -92,6 +95,7 @@ func ApplyColors(pal renderer.ColorScheme, c Colors) renderer.ColorScheme {
 
 	set(&pal.Green, c.Green)
 	set(&pal.Amber, c.Amber)
+	set(&pal.Sage, c.Sage)
 	set(&pal.Yellow, c.Yellow)
 	set(&pal.Orange, c.Orange)
 	set(&pal.Red, c.Red)
@@ -114,7 +118,7 @@ func ApplyColors(pal renderer.ColorScheme, c Colors) renderer.ColorScheme {
 }
 
 // colourKeys lists the [colors] roles SetColor accepts.
-var colourKeys = []string{"green", "amber", "yellow", "orange", "red", "cyan", "magenta"}
+var colourKeys = []string{"green", "sage", "amber", "yellow", "orange", "red", "cyan", "magenta"}
 
 // SetColor atomically updates one role in [colors]. The value is validated
 // before it is written, so an unusable colour never reaches the file.

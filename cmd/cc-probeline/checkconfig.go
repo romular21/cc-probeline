@@ -292,6 +292,7 @@ func collectConfigFields(cfg, def *config.Config, verbose bool) []configField {
 	// Colours.
 	add("colors.green", cfg.Colors.Green, def.Colors.Green)
 	add("colors.amber", cfg.Colors.Amber, def.Colors.Amber)
+	add("colors.sage", cfg.Colors.Sage, def.Colors.Sage)
 	add("colors.yellow", cfg.Colors.Yellow, def.Colors.Yellow)
 	add("colors.orange", cfg.Colors.Orange, def.Colors.Orange)
 	add("colors.red", cfg.Colors.Red, def.Colors.Red)
