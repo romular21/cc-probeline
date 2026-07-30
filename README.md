@@ -143,6 +143,10 @@ curl -fsSL https://raw.githubusercontent.com/labzink/cc-probeline/main/scripts/i
 - For the quota segment (5h / 7d limits, extra usage): Claude Code ≥ 2.1.80, which passes `rate_limits` in the status-line payload. On older versions the quota segment is hidden; everything else works normally.
 - For the per-model segment (`Fable 7d: …`): a plan that actually has a model-scoped weekly limit. These windows never reach the status-line payload, so the figures are read from the usage snapshot Claude Code caches in `~/.claude.json` — locally, read-only, no credentials and no network. No scoped limit on the account means the segment simply does not render.
 
+  That snapshot is refreshed by Claude Code, not by this tool, and only when certain API responses land — a session can run for an hour and a half of heavy traffic without one. Past the age at which Claude Code itself stops trusting it, the figure is marked with a leading `~`. **Opening `/usage` refreshes it immediately** (measured: a 98-minute-old snapshot updated the moment the command ran), and the `~` clears on the next render.
+
+  The account-wide `5h` and `7d` bars are unaffected — those arrive in the status-line payload on every render and are always current.
+
 ### Configuration
 
 Run the interactive wizard from inside Claude Code:
