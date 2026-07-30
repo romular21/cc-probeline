@@ -71,6 +71,18 @@ header_merge = false
 # Default: 10
 bar_width = 10
 
+# Which glyphs the bars are drawn with. A terminal line has one height, so a
+# visually lighter bar can only come from glyphs that occupy less of the cell:
+#
+#   "block" — █ ▒ ░, the original, filling the cell
+#   "line"  — ━ ╾ ─, a rule through the middle of the line
+#   "low"   — ▄ ▂ ▁, sitting on the baseline
+#   "dot"   — ● ◐ ○, echoing the effort indicator
+#   "none"  — no bar at all; the percentage stands in for it (5h: 9% ↻ 6d.7h)
+#
+# Default: "block"
+bar_style = "block"
+
 # How the reasoning-effort indicator is drawn next to the model name:
 #   "glyph" — filled-circle icon: ○ low · ◔ medium · ◑ high · ◕ xhigh · ● max
 #   "word"  — the level spelled out ("xhigh"), which needs no legend

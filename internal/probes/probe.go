@@ -192,6 +192,12 @@ type Config struct {
 	// icon — is the original layout. Set from [general].effort_style.
 	EffortWord bool
 
+	// BarStyle picks the glyphs the Full-level bars are drawn with
+	// ([general].bar_style): "block" (default), "line", "low", "dot", or
+	// "none", which drops the bar and prints the percentage instead. The empty
+	// string means unset and renders as "block".
+	BarStyle string
+
 	// BarWidth is how many segments the Full-level progress bars use
 	// ([general].bar_width): 10 (the default, 5% precision) or 5 (half the
 	// width, 10% precision). 0 means unset and resolves to 10, so a zero-value

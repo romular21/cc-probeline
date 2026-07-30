@@ -84,6 +84,19 @@ type General struct {
 	// so the tag repeats information the line is about to give anyway.
 	ModelVariantTag bool `toml:"model_variant_tag" json:"model_variant_tag"`
 
+	// BarStyle picks the glyphs the Full-level progress bars are drawn with. A
+	// terminal line has one height, so a visually shorter bar can only come
+	// from glyphs that occupy less of it:
+	//
+	//	"block" — █ ▒ ░, the original, filling the cell (default)
+	//	"line"  — ━ ╾ ─, a rule through the middle of the line
+	//	"low"   — ▄ ▂ ▁, sitting on the baseline
+	//	"dot"   — ● ◐ ○, echoing the effort indicator
+	//	"none"  — no bar; the percentage stands in for it
+	//
+	// Any other value falls back to "block".
+	BarStyle string `toml:"bar_style" json:"bar_style"`
+
 	// EffortStyle selects how the reasoning-effort indicator is drawn next to
 	// the model name: "glyph" (default) draws the filled-circle icon — ○ low,
 	// ◔ medium, ◑ high, ◕ xhigh, ● max — and "word" spells the level out. The

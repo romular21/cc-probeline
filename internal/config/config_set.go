@@ -36,6 +36,9 @@ var validModes = []string{"standard", "super-compact"}
 // effortStyles lists the values SetEffortStyle accepts.
 var effortStyles = []string{"glyph", "word"}
 
+// barStyles lists the values SetBarStyle accepts.
+var barStyles = []string{"block", "line", "low", "dot", "none"}
+
 // widgetKeys lists the [widgets] toggles SetWidget accepts, in the order the
 // status line renders them so error messages read naturally.
 var widgetKeys = []string{
@@ -130,6 +133,16 @@ func SetBarWidth(path string, width int) error {
 	return setScalar(path, "general", "bar_width", tomlInt(width))
 }
 
+// SetBarStyle atomically updates [general].bar_style.
+// Accepted values: block, line, low, dot, none.
+func SetBarStyle(path, style string) error {
+	if !isValidBarStyle(style) {
+		return fmt.Errorf("invalid bar_style %q: accepted values are %s",
+			style, strings.Join(barStyles, ", "))
+	}
+	return setScalar(path, "general", "bar_style", tomlString(style))
+}
+
 // SetEffortStyle atomically updates [general].effort_style.
 // Accepted values: "glyph", "word".
 func SetEffortStyle(path, style string) error {
@@ -164,6 +177,16 @@ func SetWidget(path, name string, value bool) error {
 func isValidMode(mode string) bool {
 	for _, v := range validModes {
 		if mode == v {
+			return true
+		}
+	}
+	return false
+}
+
+// isValidBarStyle reports whether style is one of barStyles.
+func isValidBarStyle(style string) bool {
+	for _, v := range barStyles {
+		if style == v {
 			return true
 		}
 	}

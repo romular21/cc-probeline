@@ -23,6 +23,7 @@ func Default() *Config {
 			RefreshIntervalHint: 5,
 			TableRows:           10,
 			BarWidth:            10,
+			BarStyle:            "block",
 			EffortStyle:         "glyph",
 			ModelVariantTag:     true,
 			TableLegend:         true,

@@ -40,6 +40,7 @@ func ToProbesConfig(cfg Config) probes.Config {
 		HideHints:         !cfg.General.TutorialHints,
 		MergeHeaderLines:  cfg.General.HeaderMerge,
 		BarWidth:          cfg.General.BarWidth,
+		BarStyle:          cfg.General.BarStyle,
 		EffortWord:        cfg.General.EffortStyle == "word",
 		ModelVariantTag:   cfg.General.ModelVariantTag,
 

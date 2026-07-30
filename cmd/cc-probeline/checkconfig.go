@@ -287,6 +287,7 @@ func collectConfigFields(cfg, def *config.Config, verbose bool) []configField {
 	add("general.header_line1", cfg.General.HeaderLine1, def.General.HeaderLine1)
 	add("general.header_merge", cfg.General.HeaderMerge, def.General.HeaderMerge)
 	add("general.bar_width", cfg.General.BarWidth, def.General.BarWidth)
+	add("general.bar_style", cfg.General.BarStyle, def.General.BarStyle)
 	add("general.effort_style", cfg.General.EffortStyle, def.General.EffortStyle)
 	add("general.model_variant_tag", cfg.General.ModelVariantTag, def.General.ModelVariantTag)
 	add("general.mode", cfg.General.Mode, def.General.Mode)

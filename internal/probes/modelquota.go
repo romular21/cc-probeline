@@ -160,7 +160,7 @@ func renderScopedLimit(l claudejson.ScopedLimit, level Level, c Config,
 		return fmt.Sprintf("%s 7d: %s%s", l.Model, bar, reset)
 	case LevelCompact:
 		bar := quotaUsageColor(l.Percent, notice, warn, critical, t) +
-			renderer.ProgressBar(l.Percent) + colourReset
+			compactBar(l.Percent, c) + colourReset
 		return fmt.Sprintf("%s %s%s", l.Model, bar, reset)
 	default: // LevelMinimal
 		// Minimal keeps the model's first letter as the label — enough to tell it

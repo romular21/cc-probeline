@@ -127,7 +127,7 @@ func (p *CtxProbe) Render(d Data, c Config, t renderer.Theme, level Level) strin
 	if level == LevelCompact {
 		// 5-segment bar; no percentage display.
 		// Round to nearest 10 before passing to ProgressBar for visual stability.
-		bar := renderer.ProgressBar(roundNearest10(pct))
+		bar := compactBar(roundNearest10(pct), c)
 		colorCode := renderer.ProgressBarColor(pct, t)
 		// ProgressBarColor returns "" when AnsiEnabled=false → bar without colour.
 		return colorCode + bar + colourReset + " " + usedK + "/" + sizeK
@@ -146,6 +146,11 @@ func (p *CtxProbe) Render(d Data, c Config, t renderer.Theme, level Level) strin
 
 	// Legacy (AnsiEnabled=false): include percentage for existing tests.
 	barColor := renderer.ProgressBarColor(pct, t) // returns "" when disabled
+	// bar_style = "none" already renders the percentage in the bar's place;
+	// the trailing "(NN%)" would then state it twice.
+	if barStyleNoBar(c) {
+		return fmt.Sprintf("ctx: %s%s%s %s/%s", barColor, bar, colourReset, usedK, sizeK)
+	}
 	pctInt := int(pct)
 	return fmt.Sprintf("ctx: %s%s%s %s/%s (%d%%)", barColor, bar, colourReset, usedK, sizeK, pctInt)
 }

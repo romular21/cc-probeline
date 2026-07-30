@@ -360,6 +360,30 @@ func runModelVariantTagImpl(args []string, stdout, stderr io.Writer) int {
 		"cc-probeline model-variant-tag on|off", "model variant tag", config.SetModelVariantTag)
 }
 
+// runBarStyle selects the progress-bar glyph style.
+// Usage: cc-probeline bar-style block|line|low|dot|none
+func runBarStyle(args []string) int {
+	return runBarStyleImpl(args, os.Stdout, os.Stderr)
+}
+
+func runBarStyleImpl(args []string, stdout, stderr io.Writer) int {
+	if len(args) < 1 {
+		fmt.Fprintln(stderr, "Usage: cc-probeline bar-style block|line|low|dot|none")
+		return 64
+	}
+	path := config.GlobalConfigPath()
+	if path == "" {
+		fmt.Fprintln(stderr, "cc-probeline: cannot determine config directory (HOME/XDG_CONFIG_HOME/APPDATA unset)")
+		return 2
+	}
+	if err := config.SetBarStyle(path, args[0]); err != nil {
+		fmt.Fprintln(stderr, "cc-probeline:", err)
+		return 2
+	}
+	fmt.Fprintf(stdout, "cc-probeline: bar-style set to %q (config: %s)\n", args[0], path)
+	return 0
+}
+
 // runEffortStyle selects the reasoning-effort indicator style.
 // Usage: cc-probeline effort-style glyph|word
 func runEffortStyle(args []string) int {

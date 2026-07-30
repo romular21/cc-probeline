@@ -59,6 +59,7 @@ const (
 	modeCfgHeaderMerge   // Phase 7.6: cc-probeline header-merge on|off
 	modeCfgBarWidth      // Phase 7.6: cc-probeline bar-width 5|10
 	modeCfgEffortStyle   // Phase 7.6: cc-probeline effort-style glyph|word
+	modeCfgBarStyle      // Phase 7.6: cc-probeline bar-style block|line|low|dot|none
 	modeCfgModelVariant  // Phase 7.6: cc-probeline model-variant-tag on|off
 	modeCfgShow          // Phase 6.95.f3: cc-probeline config show
 	modeCfgPriceCheck    // Phase 7.46 Wave B: cc-probeline price-check on|off
@@ -112,6 +113,8 @@ func run(args []string) int {
 		return runBarWidth(args[2:])
 	case modeCfgEffortStyle:
 		return runEffortStyle(args[2:])
+	case modeCfgBarStyle:
+		return runBarStyle(args[2:])
 	case modeCfgModelVariant:
 		return runModelVariantTag(args[2:])
 	case modeCfgShow:
@@ -173,6 +176,8 @@ func parseMode(args []string) (mode runMode, strict bool, badFlag string) {
 		return modeCfgBarWidth, false, ""
 	case "effort-style":
 		return modeCfgEffortStyle, false, ""
+	case "bar-style":
+		return modeCfgBarStyle, false, ""
 	case "model-variant-tag":
 		return modeCfgModelVariant, false, ""
 	case "config":
