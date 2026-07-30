@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/labzink/cc-probeline/internal/claudejson"
+	"github.com/labzink/cc-probeline/internal/quota"
 	"github.com/labzink/cc-probeline/internal/renderer"
 )
 
@@ -70,12 +71,22 @@ func (p *ModelQuotaProbe) Render(d Data, c Config, t renderer.Theme, level Level
 		colourReset = t.Colors.Reset
 	}
 
+	// A scoped weekly window rolls over with the account-wide one — the two
+	// timestamps differ by under a second in practice — so repeating the
+	// countdown would spend a dozen columns restating what the 7d block beside
+	// it already says. Resolve the account reset and suppress the scoped one
+	// whenever they coincide; an account whose windows genuinely diverge still
+	// gets both.
+	acctReset, acctKnown := accountWeeklyReset(d)
+
 	out := ""
 	for i, l := range limits {
 		if i > 0 {
 			out += " · "
 		}
-		out += renderScopedLimit(l, level, notice, warn, critical, d.Now, t, colourReset)
+		showReset := !acctKnown || l.ResetsAt.IsZero() ||
+			absDuration(l.ResetsAt.Sub(acctReset)) > sharedResetTolerance
+		out += renderScopedLimit(l, level, c, notice, warn, critical, d.Now, t, colourReset, showReset)
 	}
 
 	// Staleness marker: kept short (" · 2h old") because it rides on a line that
@@ -91,27 +102,66 @@ func (p *ModelQuotaProbe) Render(d Data, c Config, t renderer.Theme, level Level
 	return out
 }
 
+// sharedResetTolerance is how far apart the account-wide and scoped weekly
+// resets may sit and still count as the same rollover. Claude Code stamps them
+// about a second apart, and they render identically well beyond that, so a
+// minute is generous without ever merging two genuinely different windows.
+const sharedResetTolerance = time.Minute
+
+// accountWeeklyReset resolves the account-wide 7d reset from the same two
+// sources QuotaProbe uses: the live payload first, then the persisted snapshot.
+func accountWeeklyReset(d Data) (time.Time, bool) {
+	var live []byte
+	if d.Stdin.RateLimits != nil {
+		live = d.Stdin.RateLimits.SevenDay.ResetsAt
+	}
+	var snapReset int64
+	if snap, ok := quota.Freshest(); ok {
+		snapReset = snap.SevenDayReset
+	}
+	return resolveReset(live, snapReset)
+}
+
+// absDuration returns the magnitude of d.
+func absDuration(d time.Duration) time.Duration {
+	if d < 0 {
+		return -d
+	}
+	return d
+}
+
 // renderScopedLimit formats one model-scoped window at the given level.
-func renderScopedLimit(l claudejson.ScopedLimit, level Level,
-	notice, warn, critical float64, now time.Time, t renderer.Theme, colourReset string) string {
+//
+// showReset drops the countdown when the window rolls over together with the
+// account-wide 7d block rendered beside it.
+func renderScopedLimit(l claudejson.ScopedLimit, level Level, c Config,
+	notice, warn, critical float64, now time.Time, t renderer.Theme, colourReset string,
+	showReset bool) string {
 
 	// The reset countdown reuses the account-wide 7d colour thresholds; a scoped
 	// window rolls over on the same weekly cadence.
-	var resetUnix int64
-	if !l.ResetsAt.IsZero() {
-		resetUnix = l.ResetsAt.Unix()
+	reset := ""
+	if showReset {
+		var resetUnix int64
+		if !l.ResetsAt.IsZero() {
+			resetUnix = l.ResetsAt.Unix()
+		}
+		reset = " " + formatReset(nil, resetUnix, now, sevenDayThresholds)
 	}
-	reset := formatReset(nil, resetUnix, now, sevenDayThresholds)
 
 	switch level {
 	case LevelFull:
+		// Same 10-segment bar the account-wide blocks use. A shorter bar would
+		// save a few columns but read as a different kind of measurement sitting
+		// on the same line; bars that mean the same thing should look the same.
+		// The width is bought back by dropping the duplicated countdown instead.
 		bar := quotaUsageColor(l.Percent, notice, warn, critical, t) +
-			renderer.ProgressBar10(l.Percent) + colourReset
-		return fmt.Sprintf("%s 7d: %s %s", l.Model, bar, reset)
+			usageBar(l.Percent, c) + colourReset
+		return fmt.Sprintf("%s 7d: %s%s", l.Model, bar, reset)
 	case LevelCompact:
 		bar := quotaUsageColor(l.Percent, notice, warn, critical, t) +
 			renderer.ProgressBar(l.Percent) + colourReset
-		return fmt.Sprintf("%s %s %s", l.Model, bar, reset)
+		return fmt.Sprintf("%s %s%s", l.Model, bar, reset)
 	default: // LevelMinimal
 		// Minimal keeps the model's first letter as the label — enough to tell it
 		// apart from the account-wide percentages, which carry no letter at all.

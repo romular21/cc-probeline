@@ -164,6 +164,65 @@ func SetTableDividers(path string, value bool) error {
 	return marshalAndWrite(path, cfg)
 }
 
+// SetModelVariantTag atomically updates [general].model_variant_tag in the TOML
+// at path. Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
+func SetModelVariantTag(path string, value bool) error {
+	cfg, err := readOrDefault(path)
+	if err != nil {
+		return err
+	}
+	cfg.General.ModelVariantTag = value
+	return marshalAndWrite(path, cfg)
+}
+
+// effortStyles lists the values SetEffortStyle accepts.
+var effortStyles = []string{"glyph", "word"}
+
+// SetEffortStyle atomically updates [general].effort_style in the TOML at path.
+// Accepted values: "glyph", "word". Any other value returns an error and leaves
+// the file unchanged.
+func SetEffortStyle(path, style string) error {
+	if style != "glyph" && style != "word" {
+		return fmt.Errorf("invalid effort_style %q: accepted values are %s",
+			style, strings.Join(effortStyles, ", "))
+	}
+	cfg, err := readOrDefault(path)
+	if err != nil {
+		return err
+	}
+	cfg.General.EffortStyle = style
+	return marshalAndWrite(path, cfg)
+}
+
+// barWidths lists the segment counts SetBarWidth accepts.
+var barWidths = []int{5, 10}
+
+// SetBarWidth atomically updates [general].bar_width in the TOML at path.
+// Accepted values: 5 or 10 — the only two widths the bar glyphs can render
+// legibly. Any other value returns an error and leaves the file unchanged.
+func SetBarWidth(path string, width int) error {
+	if width != 5 && width != 10 {
+		return fmt.Errorf("invalid bar_width %d: accepted values are 5, 10", width)
+	}
+	cfg, err := readOrDefault(path)
+	if err != nil {
+		return err
+	}
+	cfg.General.BarWidth = width
+	return marshalAndWrite(path, cfg)
+}
+
+// SetHeaderMerge atomically updates [general].header_merge in the TOML at path.
+// Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
+func SetHeaderMerge(path string, value bool) error {
+	cfg, err := readOrDefault(path)
+	if err != nil {
+		return err
+	}
+	cfg.General.HeaderMerge = value
+	return marshalAndWrite(path, cfg)
+}
+
 // SetHeaderLine atomically updates [general].header_line0 or header_line1 in the
 // TOML at path. n selects the line (0 or 1); any other value returns an error
 // and leaves the file unchanged.

@@ -6,6 +6,7 @@
 package probes_test
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/labzink/cc-probeline/internal/claudejson"
 	"github.com/labzink/cc-probeline/internal/probes"
 	"github.com/labzink/cc-probeline/internal/renderer"
+	"github.com/labzink/cc-probeline/internal/stdin"
 )
 
 // mqNow is the fixed clock these tests render against.
@@ -166,7 +168,71 @@ func TestModelQuota_AgeMarkerOnlyAtFull(t *testing.T) {
 	}
 }
 
-// T-MQP8: a window with no parseable reset time still renders its percentage —
+// ─── shared reset ────────────────────────────────────────────────────────────
+
+// mqWithAccountReset returns Data whose account-wide 7d window resets at
+// accountReset, alongside a Fable window resetting at fableReset.
+func mqWithAccountReset(accountReset, fableReset time.Time) probes.Data {
+	raw, _ := json.Marshal(accountReset.Unix())
+	return probes.Data{
+		Now: mqNow,
+		Stdin: stdin.Payload{
+			RateLimits: &stdin.RateLimits{
+				SevenDay: stdin.RateWindow{UsedPercentage: 9, ResetsAt: raw},
+			},
+		},
+		ScopedQuota: []claudejson.ScopedLimit{
+			{Model: "Fable", Percent: 5, ResetsAt: fableReset},
+		},
+		ScopedQuotaFetchedAt: mqNow,
+	}
+}
+
+// T-MQP9: the scoped weekly window rolls over with the account-wide one — Claude
+// Code stamps the two about a second apart — so repeating the countdown would
+// spend a dozen columns restating what the 7d block beside it already says.
+func TestModelQuota_SharedResetIsNotRepeated(t *testing.T) {
+	reset := mqNow.Add(6 * 24 * time.Hour)
+	// One second apart, exactly as the real snapshot records them.
+	d := mqWithAccountReset(reset, reset.Add(-time.Second))
+
+	got := (&probes.ModelQuotaProbe{}).Render(d, mqEnabled, plainTheme, probes.LevelFull)
+
+	if strings.Contains(got, "↻") {
+		t.Errorf("countdown repeated although both windows share a rollover: %q", got)
+	}
+	if !strings.HasPrefix(got, "Fable 7d: ") {
+		t.Errorf("label lost with the countdown: %q", got)
+	}
+}
+
+// T-MQP10: an account whose scoped window genuinely rolls over at a different
+// time still gets its own countdown — suppression must be about duplication,
+// not about hiding information.
+func TestModelQuota_DivergentResetKeepsCountdown(t *testing.T) {
+	accountReset := mqNow.Add(6 * 24 * time.Hour)
+	d := mqWithAccountReset(accountReset, accountReset.Add(-48*time.Hour))
+
+	got := (&probes.ModelQuotaProbe{}).Render(d, mqEnabled, plainTheme, probes.LevelFull)
+
+	if !strings.Contains(got, "↻") {
+		t.Errorf("a window resetting two days earlier must keep its countdown: %q", got)
+	}
+}
+
+// T-MQP11: with no account reset to compare against, the scoped countdown is
+// kept — dropping it would lose the only rollover information on the line.
+func TestModelQuota_UnknownAccountResetKeepsCountdown(t *testing.T) {
+	d := mqData(5) // no RateLimits in Stdin
+
+	got := (&probes.ModelQuotaProbe{}).Render(d, mqEnabled, plainTheme, probes.LevelFull)
+
+	if !strings.Contains(got, "↻") {
+		t.Errorf("countdown dropped although no account reset was known: %q", got)
+	}
+}
+
+// T-MQP12: a window with no parseable reset time still renders its percentage —
 // the countdown degrades to "??m" rather than dropping the bar.
 func TestModelQuota_UnknownResetStillRenders(t *testing.T) {
 	d := probes.Data{

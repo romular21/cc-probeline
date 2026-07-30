@@ -302,7 +302,7 @@ func TestToggle_AllOff_NoVisibleProbes(t *testing.T) {
 	// We check for content that only comes from active probes, not from the
 	// hint.Widget (which can surface cache/effort strings in alert texts).
 	// Specifically: model ID, cost '$', and known probe prefixes (not hint text).
-	probeStrings := []string{"claude-sonnet", "$0.", "ctx 1", "quota", "git:"}
+	probeStrings := []string{"claude-sonnet", "$0.", "ctx: 1", "quota", "git:"}
 	for _, s := range probeStrings {
 		if strings.Contains(out, s) {
 			t.Errorf("T-WT13: probe content %q present in output despite all toggles off: %q", s, out)

@@ -130,6 +130,10 @@ table_frame    = true # ┌─┐ / └─┘ borders and the outer bars        
 table_dividers = true # inner │ separators — costs no rows, only visual noise
 header_line0   = true # email • project • quota
 header_line1   = true # model • ctx • cost • time • git
+header_merge   = false # join the two header rows when they fit on one
+bar_width      = 10   # progress-bar segments: 10, or 5 for half the width
+effort_style   = "glyph" # or "word" — spell the effort out instead of ◕
+model_variant_tag = true # false drops the "[1m]" tag from the model name
 tutorial_hints = true # false stops the rotating tips; alerts still show
 
 [widgets]             # flip any single segment off

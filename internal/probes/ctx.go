@@ -14,13 +14,13 @@ import (
 //
 // Display (AnsiEnabled=false / legacy):
 //
-//	Full:    "ctx <bar10> <usedK>/<sizeK> (<pct>%)"
+//	Full:    "ctx: <bar> <usedK>/<sizeK> (<pct>%)"
 //	Compact: "<bar5> <usedK>/<sizeK>"   (no %)
 //	Minimal: "<usedK>/<sizeK>"           (no bar, no %)
 //
 // Display (AnsiEnabled=true / T-22):
 //
-//	Full:    "ctx <bar10> <coloured-usedK>/<sizeK>"  (no %; usedK colour by fill)
+//	Full:    "ctx: <bar> <coloured-usedK>/<sizeK>"  (no %; usedK colour by fill)
 //	Compact: "<bar5> <usedK>/<sizeK>"               (unchanged)
 //	Minimal: "<usedK>/<sizeK>"                       (no colour markers)
 //
@@ -133,20 +133,21 @@ func (p *CtxProbe) Render(d Data, c Config, t renderer.Theme, level Level) strin
 		return colorCode + bar + colourReset + " " + usedK + "/" + sizeK
 	}
 
-	// LevelFull path.
-	bar := renderer.ProgressBar10(pct)
+	// LevelFull path. Uses the shared bar helper so the context bar always
+	// matches the quota bars beside it, including at [general].bar_width = 5.
+	bar := usageBar(pct, c)
 
 	if t.AnsiEnabled {
 		// T-15: colour ONLY the bar; usedK number is rendered plain (no marker).
 		// ctxNumberMarker returns a {{color:X}} token for the bar colour band.
 		marker := ctxNumberMarker(pct, c, t)
-		return fmt.Sprintf("ctx %s%s{{reset}} %s/%s", marker, bar, usedK, sizeK)
+		return fmt.Sprintf("ctx: %s%s{{reset}} %s/%s", marker, bar, usedK, sizeK)
 	}
 
 	// Legacy (AnsiEnabled=false): include percentage for existing tests.
 	barColor := renderer.ProgressBarColor(pct, t) // returns "" when disabled
 	pctInt := int(pct)
-	return fmt.Sprintf("ctx %s%s%s %s/%s (%d%%)", barColor, bar, colourReset, usedK, sizeK, pctInt)
+	return fmt.Sprintf("ctx: %s%s%s %s/%s (%d%%)", barColor, bar, colourReset, usedK, sizeK, pctInt)
 }
 
 // roundNearest10 rounds v to the nearest multiple of 10 using standard rounding

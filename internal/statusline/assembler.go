@@ -78,6 +78,18 @@ func (a *Assembler) Render(d probes.Data) string {
 	appendHeader(a.Config.HideHeaderLine1,
 		renderer.FitLine(a.buildProbeEntries(probes.Line1Registry, d, true), cols, bulletSep))
 
+	// [general].header_merge — put both header rows on one line when they fit.
+	// A second row is only worth its terminal line when the content genuinely
+	// needs the width; if the two together still fit, splitting them wastes a
+	// row. When they do not fit, they stay split — that is the whole point of
+	// measuring rather than always joining.
+	if a.Config.MergeHeaderLines && len(lines) == 2 {
+		joined := lines[0] + bulletSep + lines[1]
+		if format.VisualLen(format.StripMarkers(joined)) <= cols {
+			lines = []string{joined}
+		}
+	}
+
 	// Phase 6.9.e (T-13): the cache-aggregate row (line 2) is removed from the
 	// Standard (table) output — its data now lives in the per-turn table columns
 	// and the per-row TTL suffix. SuperCompact has no table, so it keeps its

@@ -349,6 +349,82 @@ func runTableDividersImpl(args []string, stdout, stderr io.Writer) int {
 		"cc-probeline table-dividers on|off", "table dividers", config.SetTableDividers)
 }
 
+// runModelVariantTag shows or hides the bracketed model variant tag.
+// Usage: cc-probeline model-variant-tag on|off
+func runModelVariantTag(args []string) int {
+	return runModelVariantTagImpl(args, os.Stdout, os.Stderr)
+}
+
+func runModelVariantTagImpl(args []string, stdout, stderr io.Writer) int {
+	return setChromeToggle(args, stdout, stderr,
+		"cc-probeline model-variant-tag on|off", "model variant tag", config.SetModelVariantTag)
+}
+
+// runEffortStyle selects the reasoning-effort indicator style.
+// Usage: cc-probeline effort-style glyph|word
+func runEffortStyle(args []string) int {
+	return runEffortStyleImpl(args, os.Stdout, os.Stderr)
+}
+
+func runEffortStyleImpl(args []string, stdout, stderr io.Writer) int {
+	if len(args) < 1 {
+		fmt.Fprintln(stderr, "Usage: cc-probeline effort-style glyph|word")
+		return 64
+	}
+	path := config.GlobalConfigPath()
+	if path == "" {
+		fmt.Fprintln(stderr, "cc-probeline: cannot determine config directory (HOME/XDG_CONFIG_HOME/APPDATA unset)")
+		return 2
+	}
+	if err := config.SetEffortStyle(path, args[0]); err != nil {
+		fmt.Fprintln(stderr, "cc-probeline:", err)
+		return 2
+	}
+	fmt.Fprintf(stdout, "cc-probeline: effort-style set to %q (config: %s)\n", args[0], path)
+	return 0
+}
+
+// runBarWidth sets the Full-level progress bar width.
+// Usage: cc-probeline bar-width 5|10
+func runBarWidth(args []string) int {
+	return runBarWidthImpl(args, os.Stdout, os.Stderr)
+}
+
+func runBarWidthImpl(args []string, stdout, stderr io.Writer) int {
+	if len(args) < 1 {
+		fmt.Fprintln(stderr, "Usage: cc-probeline bar-width 5|10")
+		return 64
+	}
+	n, err := strconv.Atoi(args[0])
+	if err != nil {
+		fmt.Fprintln(stderr, "cc-probeline: bar-width requires an integer, got:", args[0])
+		return 64
+	}
+
+	path := config.GlobalConfigPath()
+	if path == "" {
+		fmt.Fprintln(stderr, "cc-probeline: cannot determine config directory (HOME/XDG_CONFIG_HOME/APPDATA unset)")
+		return 2
+	}
+	if err := config.SetBarWidth(path, n); err != nil {
+		fmt.Fprintln(stderr, "cc-probeline:", err)
+		return 2
+	}
+	fmt.Fprintf(stdout, "cc-probeline: bar-width set to %d (config: %s)\n", n, path)
+	return 0
+}
+
+// runHeaderMerge joins or splits the two header lines.
+// Usage: cc-probeline header-merge on|off
+func runHeaderMerge(args []string) int {
+	return runHeaderMergeImpl(args, os.Stdout, os.Stderr)
+}
+
+func runHeaderMergeImpl(args []string, stdout, stderr io.Writer) int {
+	return setChromeToggle(args, stdout, stderr,
+		"cc-probeline header-merge on|off", "header merge", config.SetHeaderMerge)
+}
+
 // runHeaderLine shows or hides one of the two header lines.
 // Usage: cc-probeline header-line 0|1 on|off
 func runHeaderLine(args []string) int {

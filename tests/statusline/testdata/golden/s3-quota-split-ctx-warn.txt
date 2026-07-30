@@ -1,5 +1,5 @@
 {{dim}}me@example.com{{reset}}{{dim}} • {{reset}}{{dim}}cc-probeline{{reset}}{{dim}} • {{reset}}{{color:bold_red}}{{color:red}}████▒{{reset}} {{color:bold_red}}98%{{reset}} {{color:red}}↻ 0h:8m{{reset}}{{reset}} · {{color:orange}}███▒░{{reset}} {{color:green}}↻ 1d.6h{{reset}}
-opus-4-7{{dim}} • {{reset}}ctx {{color:orange}}███████▒░░{{reset}} 156K/200K{{dim}} • {{reset}}cost: $11.39{{dim}} • {{reset}}time: 20:17{{dim}} • {{reset}}{{color:cyan}}⎇ main{{reset}}
+opus-4-7{{dim}} • {{reset}}ctx: {{color:orange}}███████▒░░{{reset}} 156K/200K{{dim}} • {{reset}}cost: $11.39{{dim}} • {{reset}}time: 20:17{{dim}} • {{reset}}{{color:cyan}}⎇ main{{reset}}
 {{dim}}┌────┬──────────────┬────────────┬─────────────┬───────┬─────────┬─────────────┐{{reset}}
 {{dim}}│{{reset}} 15 {{dim}}│{{reset}} {{color:cyan}}orchestrator{{reset}} {{dim}}│{{reset}} opus-4-7   {{dim}}│{{reset}} 278K    900 {{dim}}│{{reset}}   880 {{dim}}│{{reset}}   $0.32 {{dim}}│{{reset}} thinking... {{dim}}│{{reset}} {{color:green}}⏱ 57m{{reset}}
 {{dim}}│{{reset}} 14 {{dim}}│{{reset}} {{color:cyan}}orchestrator{{reset}} {{dim}}│{{reset}} opus-4-7   {{dim}}│{{reset}} 276K     1K {{dim}}│{{reset}}   760 {{dim}}│{{reset}}   $0.31 {{dim}}│{{reset}} Read        {{dim}}│{{reset}}

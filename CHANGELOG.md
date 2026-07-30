@@ -13,7 +13,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - **Take back your vertical space** — every row the status line draws can now be switched off from the config, and the keys stack. `table_legend` drops the `# role model cache r/w …` labels and their separator (2 rows), `table_frame` drops the `┌─┐ / └─┘` borders and the outer bars (2 rows), `header_line0` / `header_line1` drop the account and session headers, and `table_dividers` quietens the inner `│` separators without costing a row. The full eight-row dashboard can be taken down to a single line of quota bars. All keys default to `true`, so an existing config renders exactly as before.
 - **`table_rows = 0`** — 0 is now a valid table size and means "no per-turn table at all": rows, legend and frame go together. Previously 0 was silently raised to 1.
 - **CLI toggles for the new keys** — `cc-probeline table-legend on|off`, `table-frame`, `table-dividers`, and `header-line 0|1 on|off`, alongside the existing `table-rows`. All five show up in `cc-probeline check-config`.
+- **`header_merge`** — puts both header rows on one line whenever they fit the terminal, and splits them again when they do not. A second row is only worth a terminal line when the content actually needs the width.
+- **`bar_width`** — 10 segments (the default) or 5. It applies to the quota windows, the per-model windows and the context bar together, so the bars on a line always match each other; 5 halves the width at the cost of dropping the resolution from 5% to 10%.
+- **`effort_style`** — `"word"` spells the reasoning effort out (`opus-5 xhigh`) instead of drawing the filled-circle icon (`opus-5 ◕`). The icon is compact but needs the legend to read; the word needs none. Default stays `"glyph"`.
+- **`model_variant_tag`** — set false to drop the bracketed variant tag large-context models carry in their id (`opus-5[1m]` → `opus-5`). The context segment beside it already spells the window out, so the tag repeats what the line is about to say. Default stays true.
 - **`scripts/build-frames.sh`** — regenerates every README screenshot from the code itself (emitter → ANSI → SVG → PNG), so the images always show what the current build renders instead of being screenshotted by hand. The code already referenced this script; it had never been committed. It also flattens the status line's faint attribute into explicit dark colours first, because the SVG renderers ignore SGR 2 and would otherwise paint history rows as brightly as the current request, losing the distinction the table is built around.
+
+### Changed
+
+- **The per-model window no longer repeats the weekly countdown.** A scoped weekly window rolls over with the account-wide one — Claude Code stamps the two about a second apart — so `Fable 7d: ▒░░░░░░░░░ ↻ 6d.8h` was spending a dozen columns restating the `7d` block beside it. The countdown is now shown only when the two genuinely diverge.
+- **The context segment is labelled like every other one.** It rendered as `ctx ███░░░` while the quota segments used `5h:` / `7d:`; it is now `ctx:`, and it follows `bar_width` so its bar always matches the bars next to it.
 
 ### Fixed
 

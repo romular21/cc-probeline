@@ -19,7 +19,7 @@ func ToProbesConfig(cfg Config) probes.Config {
 		// fields were removed from Widgets (dead config) but probes still read
 		// these flags internally (cache.go:46, subagent.go:34). Hardcoding true
 		// keeps probe visibility unchanged without cascading deletes into probes/.
-		CacheEnabled:    true,
+		CacheEnabled:      true,
 		QuotaEnabled:      cfg.Widgets.Quota,
 		GitEnabled:        cfg.Widgets.Git,
 		SubagentEnabled:   true,
@@ -38,6 +38,10 @@ func ToProbesConfig(cfg Config) probes.Config {
 		HideHeaderLine0:   !cfg.General.HeaderLine0,
 		HideHeaderLine1:   !cfg.General.HeaderLine1,
 		HideHints:         !cfg.General.TutorialHints,
+		MergeHeaderLines:  cfg.General.HeaderMerge,
+		BarWidth:          cfg.General.BarWidth,
+		EffortWord:        cfg.General.EffortStyle == "word",
+		ModelVariantTag:   cfg.General.ModelVariantTag,
 
 		Email: cfg.Probes.Email.Address,
 

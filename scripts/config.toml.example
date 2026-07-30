@@ -57,6 +57,28 @@ table_dividers = true
 # Default: true
 header_line0 = true
 
+# Join the two header lines into one whenever they fit the terminal width,
+# falling back to two rows when they do not. Default: false (two rows always).
+header_merge = false
+
+# Segment count for the Full-level progress bars — quota, per-model quota and
+# context alike, so they always match. Accepts 10 or 5; 5 halves the width but
+# drops the resolution to 10%, so a window below 10% reads as empty.
+# Default: 10
+bar_width = 10
+
+# How the reasoning-effort indicator is drawn next to the model name:
+#   "glyph" — filled-circle icon: ○ low · ◔ medium · ◑ high · ◕ xhigh · ● max
+#   "word"  — the level spelled out ("xhigh"), which needs no legend
+# Default: "glyph"
+effort_style = "glyph"
+
+# Keep the bracketed variant tag large-context models carry in their id
+# ("opus-5[1m]"). Set false to drop it — the context segment beside it already
+# spells the window out ("437K/1000K").
+# Default: true
+model_variant_tag = true
+
 # Second header line: model • ctx • cost • time • git.
 # Default: true
 header_line1 = true

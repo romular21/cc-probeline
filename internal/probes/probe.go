@@ -176,6 +176,28 @@ type Config struct {
 	// false). Alerts and the update notice still surface.
 	HideHints bool
 
+	// MergeHeaderLines joins the two header rows when they fit on one
+	// ([general].header_merge). Stated positively because the zero value —
+	// no merging — is the original layout.
+	MergeHeaderLines bool
+
+	// ModelVariantTag keeps the bracketed variant tag in the model name
+	// ("opus-5[1m]"). Set from [general].model_variant_tag; ToProbesConfig
+	// passes it through, and the zero value strips the tag — see the note on
+	// ToProbesConfig, which is the only caller that matters in production.
+	ModelVariantTag bool
+
+	// EffortWord spells the reasoning effort out ("xhigh") instead of drawing
+	// the circle icon ("◕"). Stated positively because the zero value — the
+	// icon — is the original layout. Set from [general].effort_style.
+	EffortWord bool
+
+	// BarWidth is how many segments the Full-level progress bars use
+	// ([general].bar_width): 10 (the default, 5% precision) or 5 (half the
+	// width, 10% precision). 0 means unset and resolves to 10, so a zero-value
+	// Config keeps the original bars.
+	BarWidth int
+
 	// Per-probe values (Phase 6 — from config.Probes).
 	// Email is the override address for the Email probe. When empty the probe
 	// reads the address from the CC session JSONL.

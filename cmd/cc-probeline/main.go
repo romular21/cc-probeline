@@ -45,17 +45,21 @@ const (
 	modeUninstall
 	modeInstall
 	modeCheck
-	modeCheckConfig   // Phase 6.e: cc-probeline check-config
-	modeHints         // Phase 6.f: cc-probeline hints on/off
-	modeCfgMode       // Phase 6.95.cfg: cc-probeline mode standard|super-compact
-	modeCfgNoColor    // Phase 6.95.cfg: cc-probeline no-color on|off
-	modeCfgWidgets    // Phase 6.95.cfg: cc-probeline widgets <name> on|off
-	modeCfgRefresh    // Phase 6.95.cfg: cc-probeline refresh-interval <n>
+	modeCheckConfig      // Phase 6.e: cc-probeline check-config
+	modeHints            // Phase 6.f: cc-probeline hints on/off
+	modeCfgMode          // Phase 6.95.cfg: cc-probeline mode standard|super-compact
+	modeCfgNoColor       // Phase 6.95.cfg: cc-probeline no-color on|off
+	modeCfgWidgets       // Phase 6.95.cfg: cc-probeline widgets <name> on|off
+	modeCfgRefresh       // Phase 6.95.cfg: cc-probeline refresh-interval <n>
 	modeCfgTableRows     // Phase 6.95.cfg: cc-probeline table-rows <n>
 	modeCfgTableLegend   // Phase 7.5: cc-probeline table-legend on|off
 	modeCfgTableFrame    // Phase 7.5: cc-probeline table-frame on|off
 	modeCfgTableDividers // Phase 7.5: cc-probeline table-dividers on|off
 	modeCfgHeaderLine    // Phase 7.5: cc-probeline header-line 0|1 on|off
+	modeCfgHeaderMerge   // Phase 7.6: cc-probeline header-merge on|off
+	modeCfgBarWidth      // Phase 7.6: cc-probeline bar-width 5|10
+	modeCfgEffortStyle   // Phase 7.6: cc-probeline effort-style glyph|word
+	modeCfgModelVariant  // Phase 7.6: cc-probeline model-variant-tag on|off
 	modeCfgShow          // Phase 6.95.f3: cc-probeline config show
 	modeCfgPriceCheck    // Phase 7.46 Wave B: cc-probeline price-check on|off
 	modeBad              // unknown flag: exit 64
@@ -102,6 +106,14 @@ func run(args []string) int {
 		return runTableDividers(args[2:])
 	case modeCfgHeaderLine:
 		return runHeaderLine(args[2:])
+	case modeCfgHeaderMerge:
+		return runHeaderMerge(args[2:])
+	case modeCfgBarWidth:
+		return runBarWidth(args[2:])
+	case modeCfgEffortStyle:
+		return runEffortStyle(args[2:])
+	case modeCfgModelVariant:
+		return runModelVariantTag(args[2:])
 	case modeCfgShow:
 		return runConfigShow(args[2:])
 	case modeCfgPriceCheck:
@@ -155,6 +167,14 @@ func parseMode(args []string) (mode runMode, strict bool, badFlag string) {
 		return modeCfgTableDividers, false, ""
 	case "header-line":
 		return modeCfgHeaderLine, false, ""
+	case "header-merge":
+		return modeCfgHeaderMerge, false, ""
+	case "bar-width":
+		return modeCfgBarWidth, false, ""
+	case "effort-style":
+		return modeCfgEffortStyle, false, ""
+	case "model-variant-tag":
+		return modeCfgModelVariant, false, ""
 	case "config":
 		return modeCfgShow, false, ""
 	case "price-check":

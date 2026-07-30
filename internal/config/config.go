@@ -78,6 +78,32 @@ type General struct {
 	// toggles.
 	HeaderLine0 bool `toml:"header_line0" json:"header_line0"`
 
+	// ModelVariantTag keeps the bracketed variant tag that large-context models
+	// carry in their id ("opus-5[1m]"). Default true. Set false to drop it: the
+	// context segment beside it already spells the window out ("437K/1000K"),
+	// so the tag repeats information the line is about to give anyway.
+	ModelVariantTag bool `toml:"model_variant_tag" json:"model_variant_tag"`
+
+	// EffortStyle selects how the reasoning-effort indicator is drawn next to
+	// the model name: "glyph" (default) draws the filled-circle icon — ○ low,
+	// ◔ medium, ◑ high, ◕ xhigh, ● max — and "word" spells the level out. The
+	// icon is compact but needs a legend to read; the word needs none.
+	// Any other value falls back to "glyph".
+	EffortStyle string `toml:"effort_style" json:"effort_style"`
+
+	// BarWidth is how many segments the Full-level progress bars use — the
+	// quota windows, the per-model windows and the context bar alike, so they
+	// always match each other. Accepts 10 (default, 5% precision) or 5 (half
+	// the width, 10% precision); any other value falls back to 10.
+	BarWidth int `toml:"bar_width" json:"bar_width"`
+
+	// HeaderMerge joins the two header rows into one whenever their combined
+	// width still fits the terminal, falling back to two rows when it does not.
+	// Default false, which keeps the original two-row header. Set true to stop
+	// spending a second terminal row on content that already fits beside the
+	// first.
+	HeaderMerge bool `toml:"header_merge" json:"header_merge"`
+
 	// HeaderLine1 shows the second status-line row — the session header
 	// carrying model, git, context, cost and elapsed time. Default true.
 	// Set false to drop the whole row regardless of the individual [widgets]

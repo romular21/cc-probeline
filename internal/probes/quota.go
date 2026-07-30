@@ -298,9 +298,9 @@ func (p *QuotaProbe) Render(d Data, c Config, t renderer.Theme, level Level) str
 	switch level {
 	case LevelFull:
 		bar5h := quotaUsageColor(pct5h, n5, w5, c5, t) +
-			renderer.ProgressBar10(pct5h) + colourReset
+			usageBar(pct5h, c) + colourReset
 		bar7d := quotaUsageColor(pct7d, n7, w7, c7, t) +
-			renderer.ProgressBar10(pct7d) + colourReset
+			usageBar(pct7d, c) + colourReset
 		val5h := boldRedWrap(pct5h, fmt.Sprintf("%s%s %s", bar5h, pctSuffix(pct5h, c5, true), reset5h))
 		val7d := boldRedWrap(pct7d, fmt.Sprintf("%s%s %s", bar7d, pctSuffix(pct7d, c7, false), reset7d))
 		if extraOn5h {
