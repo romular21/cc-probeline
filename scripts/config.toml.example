@@ -62,8 +62,12 @@ header_line0 = true
 header_merge = false
 
 # Segment count for the Full-level progress bars — quota, per-model quota and
-# context alike, so they always match. Accepts 10 or 5; 5 halves the width but
-# drops the resolution to 10%, so a window below 10% reads as empty.
+# context alike, so they always match. Accepts 3-20.
+#
+# 5 and 10 pre-round the value, so the bar holds still as a percentage drifts;
+# at 5 that costs resolution, and a window below 10% reads as empty. Any other
+# width is drawn proportionally without rounding, so small values stay visible:
+# at 8 segments a 9% window reads "▒░░░░░░░".
 # Default: 10
 bar_width = 10
 

@@ -1,14 +1,17 @@
 package config
 
-import (
-	"errors"
-	"fmt"
-	"io/fs"
-	"os"
-	"path/filepath"
-	"strings"
+// config_set.go — the setters behind the `cc-probeline <key> <value>` commands
+// and the /cc-probeline-config wizard.
+//
+// Every one of them edits a single value in place via setScalar, so comments,
+// key order and formatting in the user's config.toml survive untouched. None of
+// them round-trips the file through Config: that would rewrite the whole file
+// to change one boolean, which is a poor trade for a file people are invited to
+// read and annotate by hand.
 
-	"github.com/pelletier/go-toml/v2"
+import (
+	"fmt"
+	"strings"
 )
 
 // tableRowsCap is the maximum value accepted by SetTableRows.
@@ -20,102 +23,63 @@ const tableRowsCap = 40
 // and frame) from the status line.
 const tableRowsFloor = 0
 
+// barWidthMin and barWidthMax bound SetBarWidth. Below three segments a bar has
+// no shape; past twenty it stops being readable at a glance.
+const (
+	barWidthMin = 3
+	barWidthMax = 20
+)
+
 // validModes lists the accepted values for SetMode.
 var validModes = []string{"standard", "super-compact"}
 
-// SetMode atomically updates [general].mode in the TOML at path.
+// effortStyles lists the values SetEffortStyle accepts.
+var effortStyles = []string{"glyph", "word"}
+
+// widgetKeys lists the [widgets] toggles SetWidget accepts, in the order the
+// status line renders them so error messages read naturally.
+var widgetKeys = []string{
+	"model", "effort", "cost", "project", "email",
+	"time", "ctx", "quota", "quota_model", "git",
+}
+
+// ─── [general] ───────────────────────────────────────────────────────────────
+
+// SetTutorialHints atomically updates [general].tutorial_hints.
+func SetTutorialHints(path string, value bool) error {
+	return setScalar(path, "general", "tutorial_hints", tomlBool(value))
+}
+
+// SetMode atomically updates [general].mode.
 // Accepted values: "standard", "super-compact". Any other value returns an
 // error and leaves the file unchanged.
-// Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
 func SetMode(path, mode string) error {
 	if !isValidMode(mode) {
 		return fmt.Errorf("invalid mode %q: accepted values are %s",
 			mode, strings.Join(validModes, ", "))
 	}
-	cfg, err := readOrDefault(path)
-	if err != nil {
-		return err
-	}
-	cfg.General.Mode = mode
-	return marshalAndWrite(path, cfg)
+	return setScalar(path, "general", "mode", tomlString(mode))
 }
 
-// SetNoColor atomically updates [general].no_color in the TOML at path.
-// Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
+// SetNoColor atomically updates [general].no_color.
 func SetNoColor(path string, value bool) error {
-	cfg, err := readOrDefault(path)
-	if err != nil {
-		return err
-	}
-	cfg.General.NoColor = value
-	return marshalAndWrite(path, cfg)
+	return setScalar(path, "general", "no_color", tomlBool(value))
 }
 
-// SetPriceCheck atomically updates [general].price_check in the TOML at path
-// (Phase 7.46 Wave B / BL-36 — opt out of the once-per-day network price check).
-// Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
+// SetPriceCheck atomically updates [general].price_check (Phase 7.46 Wave B /
+// BL-36 — opt out of the once-per-day network price check).
 func SetPriceCheck(path string, value bool) error {
-	cfg, err := readOrDefault(path)
-	if err != nil {
-		return err
-	}
-	cfg.General.PriceCheck = value
-	return marshalAndWrite(path, cfg)
+	return setScalar(path, "general", "price_check", tomlBool(value))
 }
 
-// SetWidget atomically updates the named widget toggle in [widgets].
-// name must be one of the Widgets field TOML names (e.g. "model", "ctx").
-// Unknown names return an error and leave the file unchanged.
-// Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
-func SetWidget(path, name string, value bool) error {
-	cfg, err := readOrDefault(path)
-	if err != nil {
-		return err
-	}
-	switch name {
-	case "model":
-		cfg.Widgets.Model = value
-	case "effort":
-		cfg.Widgets.Effort = value
-	case "cost":
-		cfg.Widgets.Cost = value
-	case "project":
-		cfg.Widgets.Project = value
-	case "email":
-		cfg.Widgets.Email = value
-	case "time":
-		cfg.Widgets.Time = value
-	case "ctx":
-		cfg.Widgets.Ctx = value
-	case "quota":
-		cfg.Widgets.Quota = value
-	case "quota_model":
-		cfg.Widgets.QuotaModel = value
-	case "git":
-		cfg.Widgets.Git = value
-	default:
-		return fmt.Errorf("unknown widget %q: accepted names are model, effort, cost, project, email, time, ctx, quota, quota_model, git", name)
-	}
-	return marshalAndWrite(path, cfg)
-}
-
-// SetRefreshInterval atomically updates [general].refresh_interval_hint in the
-// TOML at path.
-// Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
+// SetRefreshInterval atomically updates [general].refresh_interval_hint.
 func SetRefreshInterval(path string, seconds int) error {
-	cfg, err := readOrDefault(path)
-	if err != nil {
-		return err
-	}
-	cfg.General.RefreshIntervalHint = seconds
-	return marshalAndWrite(path, cfg)
+	return setScalar(path, "general", "refresh_interval_hint", tomlInt(seconds))
 }
 
-// SetTableRows atomically updates [general].table_rows in the TOML at path.
-// The value is clamped to [tableRowsFloor, tableRowsCap] = [0, 40]: values above
-// 40 are capped to 40, and negatives are raised to 0. 0 is a valid setting and
-// turns the per-turn table off entirely.
-// Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
+// SetTableRows atomically updates [general].table_rows. The value is clamped to
+// [0, 40]: above 40 is capped, negatives are raised to 0. 0 is a valid setting
+// and turns the per-turn table off entirely.
 func SetTableRows(path string, rows int) error {
 	if rows > tableRowsCap {
 		rows = tableRowsCap
@@ -123,165 +87,93 @@ func SetTableRows(path string, rows int) error {
 	if rows < tableRowsFloor {
 		rows = tableRowsFloor
 	}
-	cfg, err := readOrDefault(path)
-	if err != nil {
-		return err
-	}
-	cfg.General.TableRows = rows
-	return marshalAndWrite(path, cfg)
+	return setScalar(path, "general", "table_rows", tomlInt(rows))
 }
 
-// SetTableLegend atomically updates [general].table_legend in the TOML at path.
-// Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
+// SetTableLegend atomically updates [general].table_legend.
 func SetTableLegend(path string, value bool) error {
-	cfg, err := readOrDefault(path)
-	if err != nil {
-		return err
-	}
-	cfg.General.TableLegend = value
-	return marshalAndWrite(path, cfg)
+	return setScalar(path, "general", "table_legend", tomlBool(value))
 }
 
-// SetTableFrame atomically updates [general].table_frame in the TOML at path.
-// Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
+// SetTableFrame atomically updates [general].table_frame.
 func SetTableFrame(path string, value bool) error {
-	cfg, err := readOrDefault(path)
-	if err != nil {
-		return err
-	}
-	cfg.General.TableFrame = value
-	return marshalAndWrite(path, cfg)
+	return setScalar(path, "general", "table_frame", tomlBool(value))
 }
 
-// SetTableDividers atomically updates [general].table_dividers in the TOML at
-// path. Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
+// SetTableDividers atomically updates [general].table_dividers.
 func SetTableDividers(path string, value bool) error {
-	cfg, err := readOrDefault(path)
-	if err != nil {
-		return err
-	}
-	cfg.General.TableDividers = value
-	return marshalAndWrite(path, cfg)
+	return setScalar(path, "general", "table_dividers", tomlBool(value))
 }
 
-// SetModelVariantTag atomically updates [general].model_variant_tag in the TOML
-// at path. Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
-func SetModelVariantTag(path string, value bool) error {
-	cfg, err := readOrDefault(path)
-	if err != nil {
-		return err
-	}
-	cfg.General.ModelVariantTag = value
-	return marshalAndWrite(path, cfg)
+// SetHeaderMerge atomically updates [general].header_merge.
+func SetHeaderMerge(path string, value bool) error {
+	return setScalar(path, "general", "header_merge", tomlBool(value))
 }
 
-// effortStyles lists the values SetEffortStyle accepts.
-var effortStyles = []string{"glyph", "word"}
+// SetHeaderLine atomically updates [general].header_line0 or header_line1.
+// n selects the line (0 or 1); any other value returns an error and leaves the
+// file unchanged.
+func SetHeaderLine(path string, n int, value bool) error {
+	if n != 0 && n != 1 {
+		return fmt.Errorf("invalid header line %d: accepted values are 0, 1", n)
+	}
+	return setScalar(path, "general", fmt.Sprintf("header_line%d", n), tomlBool(value))
+}
 
-// SetEffortStyle atomically updates [general].effort_style in the TOML at path.
-// Accepted values: "glyph", "word". Any other value returns an error and leaves
-// the file unchanged.
+// SetBarWidth atomically updates [general].bar_width.
+// Accepted range: 3–20 segments.
+func SetBarWidth(path string, width int) error {
+	if width < barWidthMin || width > barWidthMax {
+		return fmt.Errorf("invalid bar_width %d: accepted range is %d-%d",
+			width, barWidthMin, barWidthMax)
+	}
+	return setScalar(path, "general", "bar_width", tomlInt(width))
+}
+
+// SetEffortStyle atomically updates [general].effort_style.
+// Accepted values: "glyph", "word".
 func SetEffortStyle(path, style string) error {
 	if style != "glyph" && style != "word" {
 		return fmt.Errorf("invalid effort_style %q: accepted values are %s",
 			style, strings.Join(effortStyles, ", "))
 	}
-	cfg, err := readOrDefault(path)
-	if err != nil {
-		return err
-	}
-	cfg.General.EffortStyle = style
-	return marshalAndWrite(path, cfg)
+	return setScalar(path, "general", "effort_style", tomlString(style))
 }
 
-// barWidths lists the segment counts SetBarWidth accepts.
-var barWidths = []int{5, 10}
-
-// SetBarWidth atomically updates [general].bar_width in the TOML at path.
-// Accepted values: 5 or 10 — the only two widths the bar glyphs can render
-// legibly. Any other value returns an error and leaves the file unchanged.
-func SetBarWidth(path string, width int) error {
-	if width != 5 && width != 10 {
-		return fmt.Errorf("invalid bar_width %d: accepted values are 5, 10", width)
-	}
-	cfg, err := readOrDefault(path)
-	if err != nil {
-		return err
-	}
-	cfg.General.BarWidth = width
-	return marshalAndWrite(path, cfg)
+// SetModelVariantTag atomically updates [general].model_variant_tag.
+func SetModelVariantTag(path string, value bool) error {
+	return setScalar(path, "general", "model_variant_tag", tomlBool(value))
 }
 
-// SetHeaderMerge atomically updates [general].header_merge in the TOML at path.
-// Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
-func SetHeaderMerge(path string, value bool) error {
-	cfg, err := readOrDefault(path)
-	if err != nil {
-		return err
+// ─── [widgets] ───────────────────────────────────────────────────────────────
+
+// SetWidget atomically updates the named toggle in [widgets].
+// name must be one of the Widgets field TOML names (e.g. "model", "ctx").
+// Unknown names return an error and leave the file unchanged.
+func SetWidget(path, name string, value bool) error {
+	if !isValidWidget(name) {
+		return fmt.Errorf("unknown widget %q: accepted names are %s",
+			name, strings.Join(widgetKeys, ", "))
 	}
-	cfg.General.HeaderMerge = value
-	return marshalAndWrite(path, cfg)
+	return setScalar(path, "widgets", name, tomlBool(value))
 }
 
-// SetHeaderLine atomically updates [general].header_line0 or header_line1 in the
-// TOML at path. n selects the line (0 or 1); any other value returns an error
-// and leaves the file unchanged.
-// Round-trip semantics and file-creation behaviour mirror SetTutorialHints.
-func SetHeaderLine(path string, n int, value bool) error {
-	if n != 0 && n != 1 {
-		return fmt.Errorf("invalid header line %d: accepted values are 0, 1", n)
-	}
-	cfg, err := readOrDefault(path)
-	if err != nil {
-		return err
-	}
-	if n == 0 {
-		cfg.General.HeaderLine0 = value
-	} else {
-		cfg.General.HeaderLine1 = value
-	}
-	return marshalAndWrite(path, cfg)
-}
+// ─── validation helpers ──────────────────────────────────────────────────────
 
-// ─── shared helpers ───────────────────────────────────────────────────────────
-
-// readOrDefault reads and parses the TOML at path (starting from Default() so
-// omitted keys keep their default values), or creates a minimal new file when
-// the file does not yet exist. Returns an error when the existing file is
-// invalid so callers do not clobber user-edited content.
-func readOrDefault(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			// Return Default(); the caller will write the file via marshalAndWrite.
-			return Default(), nil
-		}
-		return nil, fmt.Errorf("read %s: %w", path, err)
-	}
-	cfg := Default()
-	if err := toml.Unmarshal(data, cfg); err != nil {
-		return nil, fmt.Errorf("existing config is invalid; run 'cc-probeline check-config' for details, then fix or remove %s: %w", path, err)
-	}
-	return cfg, nil
-}
-
-// marshalAndWrite marshals cfg to TOML and atomically writes it to path,
-// creating parent directories as needed.
-func marshalAndWrite(path string, cfg *Config) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("mkdir parent of %s: %w", path, err)
-	}
-	out, err := toml.Marshal(cfg)
-	if err != nil {
-		return fmt.Errorf("marshal config: %w", err)
-	}
-	return atomicWrite(path, out)
-}
-
-// isValidMode reports whether mode is one of the accepted mode strings.
+// isValidMode reports whether mode is one of validModes.
 func isValidMode(mode string) bool {
 	for _, v := range validModes {
 		if mode == v {
+			return true
+		}
+	}
+	return false
+}
+
+// isValidWidget reports whether name is a known [widgets] key.
+func isValidWidget(name string) bool {
+	for _, k := range widgetKeys {
+		if k == name {
 			return true
 		}
 	}
