@@ -288,6 +288,7 @@ func collectConfigFields(cfg, def *config.Config, verbose bool) []configField {
 	add("general.header_merge", cfg.General.HeaderMerge, def.General.HeaderMerge)
 	add("general.bar_width", cfg.General.BarWidth, def.General.BarWidth)
 	add("general.bar_style", cfg.General.BarStyle, def.General.BarStyle)
+	add("general.stale_marker", cfg.General.StaleMarker, def.General.StaleMarker)
 
 	// Colours.
 	add("colors.green", cfg.Colors.Green, def.Colors.Green)

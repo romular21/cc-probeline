@@ -88,6 +88,12 @@ type General struct {
 	// so the tag repeats information the line is about to give anyway.
 	ModelVariantTag bool `toml:"model_variant_tag" json:"model_variant_tag"`
 
+	// StaleMarker prefixes a per-model figure with "~" once Claude Code's cached
+	// usage snapshot passes the age at which Claude Code itself stops trusting
+	// it (one hour). Default true. Set false to always read the number as-is —
+	// the figure is a weekly window, so an hour of drift is usually small.
+	StaleMarker bool `toml:"stale_marker" json:"stale_marker"`
+
 	// BarStyle picks the glyphs the Full-level progress bars are drawn with. A
 	// terminal line has one height, so a visually shorter bar can only come
 	// from glyphs that occupy less of it:

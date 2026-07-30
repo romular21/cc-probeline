@@ -133,6 +133,11 @@ func SetBarWidth(path string, width int) error {
 	return setScalar(path, "general", "bar_width", tomlInt(width))
 }
 
+// SetStaleMarker atomically updates [general].stale_marker.
+func SetStaleMarker(path string, value bool) error {
+	return setScalar(path, "general", "stale_marker", tomlBool(value))
+}
+
 // SetBarStyle atomically updates [general].bar_style.
 // Accepted values: block, line, low, dot, none.
 func SetBarStyle(path, style string) error {

@@ -83,6 +83,14 @@ bar_width = 10
 # Default: "block"
 bar_style = "block"
 
+# Prefix a per-model figure with "~" once Claude Code's cached usage snapshot
+# passes the age at which Claude Code itself stops trusting it (one hour).
+# It refreshes that cache only from certain API responses, so in a long session
+# the figure can sit unchanged for hours. The marker is one character wide on
+# purpose: a freshness note must not change how many rows the line occupies.
+# Default: true
+stale_marker = true
+
 # How the reasoning-effort indicator is drawn next to the model name:
 #   "glyph" — filled-circle icon: ○ low · ◔ medium · ◑ high · ◕ xhigh · ● max
 #   "word"  — the level spelled out ("xhigh"), which needs no legend

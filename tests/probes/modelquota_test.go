@@ -145,25 +145,49 @@ func TestModelQuota_AgeMarkerFollowsClaudeCodeTTL(t *testing.T) {
 		}
 	}
 
-	// Past the TTL: marked, and compactly.
+	// Past the TTL: marked with a single character, and no wider than that.
+	fresh := mqData(5)
 	stale := mqData(5)
 	stale.ScopedQuotaFetchedAt = mqNow.Add(-2 * time.Hour)
+
+	freshOut := p.Render(fresh, mqEnabled, plainTheme, probes.LevelFull)
 	got := p.Render(stale, mqEnabled, plainTheme, probes.LevelFull)
-	if !strings.HasSuffix(got, " · 2h old") {
-		t.Errorf("a 2h-old snapshot must carry a compact age marker, got %q", got)
+
+	if !strings.Contains(got, "~") {
+		t.Errorf("a 2h-old snapshot must be marked, got %q", got)
+	}
+	// The width cost is the whole point: a freshness note that lengthens the
+	// line can push a merged header past the terminal and split it in two.
+	if n := len([]rune(got)) - len([]rune(freshOut)); n != 1 {
+		t.Errorf("the marker cost %d columns, want 1\nfresh %q\nstale %q", n, freshOut, got)
 	}
 }
 
-// T-MQP7: the age marker never appears at the tighter levels, where the line is
-// already fighting for room.
-func TestModelQuota_AgeMarkerOnlyAtFull(t *testing.T) {
+// T-MQP6b: the marker can be switched off entirely.
+func TestModelQuota_StaleMarkerCanBeDisabled(t *testing.T) {
+	stale := mqData(5)
+	stale.ScopedQuotaFetchedAt = mqNow.Add(-2 * time.Hour)
+
+	cfg := mqEnabled
+	cfg.HideStaleMarker = true
+
+	if got := (&probes.ModelQuotaProbe{}).Render(stale, cfg, plainTheme, probes.LevelFull); strings.Contains(got, "~") {
+		t.Errorf("marker survived stale_marker = false: %q", got)
+	}
+}
+
+// T-MQP7: the marker is carried at every level — one column is affordable
+// everywhere, and a stale figure does not become fresh when the terminal narrows.
+func TestModelQuota_AgeMarkerAtEveryLevel(t *testing.T) {
 	p := &probes.ModelQuotaProbe{}
 	stale := mqData(5)
 	stale.ScopedQuotaFetchedAt = mqNow.Add(-2 * time.Hour)
 
+	// Every level now carries the marker: it costs one column, which even the
+	// tightest level can afford, and a stale figure is stale at any width.
 	for _, lvl := range []probes.Level{probes.LevelCompact, probes.LevelMinimal} {
-		if got := p.Render(stale, mqEnabled, plainTheme, lvl); strings.Contains(got, "old") {
-			t.Errorf("level %v must not carry the age marker: %q", lvl, got)
+		if got := p.Render(stale, mqEnabled, plainTheme, lvl); !strings.Contains(got, "~") {
+			t.Errorf("level %v dropped the staleness marker: %q", lvl, got)
 		}
 	}
 }

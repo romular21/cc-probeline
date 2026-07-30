@@ -192,6 +192,11 @@ type Config struct {
 	// icon — is the original layout. Set from [general].effort_style.
 	EffortWord bool
 
+	// HideStaleMarker drops the "~" that flags a per-model figure Claude Code
+	// has stopped refreshing ([general].stale_marker = false). Stated
+	// negatively so the zero value keeps the marker.
+	HideStaleMarker bool
+
 	// BarStyle picks the glyphs the Full-level bars are drawn with
 	// ([general].bar_style): "block" (default), "line", "low", "dot", or
 	// "none", which drops the bar and prints the percentage instead. The empty

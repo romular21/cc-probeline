@@ -41,6 +41,7 @@ func ToProbesConfig(cfg Config) probes.Config {
 		MergeHeaderLines:  cfg.General.HeaderMerge,
 		BarWidth:          cfg.General.BarWidth,
 		BarStyle:          cfg.General.BarStyle,
+		HideStaleMarker:   !cfg.General.StaleMarker,
 		EffortWord:        cfg.General.EffortStyle == "word",
 		ModelVariantTag:   cfg.General.ModelVariantTag,
 

@@ -50,6 +50,7 @@ var insertHint = map[string]string{
 	"header_merge":      "put both header rows on one line when they fit",
 	"bar_width":         "3-20 segments; 5 and 10 pre-round, others stay proportional",
 	"bar_style":         `block | line | low | dot | none (percentage instead of a bar)`,
+	"stale_marker":      `the "~" on per-model figures Claude Code has stopped refreshing`,
 	"effort_style":      "glyph (○ ◔ ◑ ◕ ●) | word (xhigh)",
 	"model_variant_tag": `keep the "[1m]" tag in the model name`,
 	"tutorial_hints":    "rotating tips; alerts surface either way",

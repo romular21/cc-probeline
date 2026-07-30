@@ -79,6 +79,16 @@ func (p *ModelQuotaProbe) Render(d Data, c Config, t renderer.Theme, level Level
 	// gets both.
 	acctReset, acctKnown := accountWeeklyReset(d)
 
+	// Staleness is marked with a single "~" in front of the value rather than a
+	// trailing " · 2h old". The text form cost nine columns, and appearing was
+	// enough to push a merged header past the terminal width and split it in
+	// two — a freshness note must not change how many rows the status line
+	// occupies. Claude Code refreshes this cache only from certain API
+	// responses, so in a long session the marker is on far more often than off,
+	// which makes the width it costs the deciding factor.
+	stale := !c.HideStaleMarker && !fetchedAt.IsZero() &&
+		d.Now.Sub(fetchedAt) > modelQuotaStale
+
 	out := ""
 	for i, l := range limits {
 		if i > 0 {
@@ -86,17 +96,7 @@ func (p *ModelQuotaProbe) Render(d Data, c Config, t renderer.Theme, level Level
 		}
 		showReset := !acctKnown || l.ResetsAt.IsZero() ||
 			absDuration(l.ResetsAt.Sub(acctReset)) > sharedResetTolerance
-		out += renderScopedLimit(l, level, c, notice, warn, critical, d.Now, t, colourReset, showReset)
-	}
-
-	// Staleness marker: kept short (" · 2h old") because it rides on a line that
-	// exists to be compact, and it only appears once the snapshot passes the age
-	// at which Claude Code itself stops trusting it. Full level only — the
-	// tighter levels have no room to spare.
-	if level == LevelFull && !fetchedAt.IsZero() {
-		if age := d.Now.Sub(fetchedAt); age > modelQuotaStale {
-			out += " · " + formatAge(age) + " old"
-		}
+		out += renderScopedLimit(l, level, c, notice, warn, critical, d.Now, t, colourReset, showReset, stale)
 	}
 
 	return out
@@ -133,10 +133,11 @@ func absDuration(d time.Duration) time.Duration {
 // renderScopedLimit formats one model-scoped window at the given level.
 //
 // showReset drops the countdown when the window rolls over together with the
-// account-wide 7d block rendered beside it.
+// account-wide 7d block rendered beside it. stale prefixes the value with "~",
+// the whole of the staleness signal — see the note in Render.
 func renderScopedLimit(l claudejson.ScopedLimit, level Level, c Config,
 	notice, warn, critical float64, now time.Time, t renderer.Theme, colourReset string,
-	showReset bool) string {
+	showReset, stale bool) string {
 
 	// The reset countdown reuses the account-wide 7d colour thresholds; a scoped
 	// window rolls over on the same weekly cadence.
@@ -156,22 +157,31 @@ func renderScopedLimit(l claudejson.ScopedLimit, level Level, c Config,
 		// on the same line; bars that mean the same thing should look the same.
 		// The width is bought back by dropping the duplicated countdown instead.
 		bar := usageValueColour(l.Percent, notice, warn, critical, c, t) +
-			usageBar(l.Percent, c) + colourReset
+			staleMark(stale) + usageBar(l.Percent, c) + colourReset
 		return fmt.Sprintf("%s 7d: %s%s", l.Model, bar, reset)
 	case LevelCompact:
 		bar := quotaUsageColor(l.Percent, notice, warn, critical, t) +
-			compactBar(l.Percent, c) + colourReset
+			staleMark(stale) + compactBar(l.Percent, c) + colourReset
 		return fmt.Sprintf("%s %s%s", l.Model, bar, reset)
 	default: // LevelMinimal
 		// Minimal keeps the model's first letter as the label — enough to tell it
 		// apart from the account-wide percentages, which carry no letter at all.
 		initial := string([]rune(l.Model)[0])
-		pct := fmt.Sprintf("%d%%", displayPctInt(l.Percent, false))
+		pct := staleMark(stale) + fmt.Sprintf("%d%%", displayPctInt(l.Percent, false))
 		if !t.AnsiEnabled {
 			return initial + " " + pct
 		}
 		return initial + " " + scopedPctColour(l.Percent, notice, warn, critical, pct)
 	}
+}
+
+// staleMark returns the one-character staleness prefix, or "" when the figures
+// are current.
+func staleMark(stale bool) string {
+	if stale {
+		return "~"
+	}
+	return ""
 }
 
 // formatAge renders a staleness age compactly: minutes below an hour, then

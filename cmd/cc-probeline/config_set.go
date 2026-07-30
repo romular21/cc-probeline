@@ -384,6 +384,13 @@ func runColorImpl(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
+// runStaleMarker shows or hides the per-model staleness marker.
+// Usage: cc-probeline stale-marker on|off
+func runStaleMarker(args []string) int {
+	return setChromeToggle(args, os.Stdout, os.Stderr,
+		"cc-probeline stale-marker on|off", "stale marker", config.SetStaleMarker)
+}
+
 // runBarStyle selects the progress-bar glyph style.
 // Usage: cc-probeline bar-style block|line|low|dot|none
 func runBarStyle(args []string) int {
