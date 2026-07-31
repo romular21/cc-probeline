@@ -169,6 +169,7 @@ table_frame    = true # ┌─┐ / └─┘ borders and the outer bars        
 table_dividers = true # inner │ separators — costs no rows, only visual noise
 header_line0   = true # email • project • quota
 header_line1   = true # model • ctx • cost • time • git
+columns        = 0    # layout width; 0 detects it — see `cc-probeline diag`
 alerts         = true # the notice row: cache rebuilt, config errors, update
 header_merge   = false # join the two header rows when they fit on one
 bar_width      = 10   # progress-bar segments, 3-20 (8 keeps small values visible)

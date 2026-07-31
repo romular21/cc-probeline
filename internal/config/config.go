@@ -88,6 +88,17 @@ type General struct {
 	// so the tag repeats information the line is about to give anyway.
 	ModelVariantTag bool `toml:"model_variant_tag" json:"model_variant_tag"`
 
+	// Columns overrides the terminal width used for layout. 0 means detect it.
+	//
+	// Detection is unreliable here through no fault of its own: Claude Code runs
+	// the status-line command with stdout on a pipe, $COLUMNS is not inherited by
+	// child processes, and depending on how Claude Code is launched the process
+	// may have no controlling terminal to ask either. When all three fail the
+	// layout falls back to 80 columns, which on a wider terminal shows up as
+	// segments collapsing and a merged header splitting in two. Set this to your
+	// real width and the guessing stops.
+	Columns int `toml:"columns" json:"columns"`
+
 	// Alerts shows the notice row under the status line: cache rebuilt, subagent
 	// cache expired, context compacted, config errors, a pending update. Default
 	// true. Set false to drop the row entirely.

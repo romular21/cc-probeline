@@ -290,6 +290,7 @@ func collectConfigFields(cfg, def *config.Config, verbose bool) []configField {
 	add("general.bar_style", cfg.General.BarStyle, def.General.BarStyle)
 	add("general.stale_marker", cfg.General.StaleMarker, def.General.StaleMarker)
 	add("general.alerts", cfg.General.Alerts, def.General.Alerts)
+	add("general.columns", cfg.General.Columns, def.General.Columns)
 
 	// Colours.
 	add("colors.green", cfg.Colors.Green, def.Colors.Green)

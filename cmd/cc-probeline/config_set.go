@@ -384,6 +384,39 @@ func runColorImpl(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
+// runColumns sets the layout width.
+// Usage: cc-probeline columns <n>
+func runColumns(args []string) int {
+	return runColumnsImpl(args, os.Stdout, os.Stderr)
+}
+
+func runColumnsImpl(args []string, stdout, stderr io.Writer) int {
+	if len(args) < 1 {
+		fmt.Fprintln(stderr, "Usage: cc-probeline columns <width>   (0 = auto-detect)")
+		return 64
+	}
+	n, err := strconv.Atoi(args[0])
+	if err != nil {
+		fmt.Fprintln(stderr, "cc-probeline: columns requires an integer, got:", args[0])
+		return 64
+	}
+	path := config.GlobalConfigPath()
+	if path == "" {
+		fmt.Fprintln(stderr, "cc-probeline: cannot determine config directory (HOME/XDG_CONFIG_HOME/APPDATA unset)")
+		return 2
+	}
+	if err := config.SetColumns(path, n); err != nil {
+		fmt.Fprintln(stderr, "cc-probeline:", err)
+		return 2
+	}
+	if n == 0 {
+		fmt.Fprintf(stdout, "cc-probeline: columns set to auto-detect (config: %s)\n", path)
+	} else {
+		fmt.Fprintf(stdout, "cc-probeline: columns set to %d (config: %s)\n", n, path)
+	}
+	return 0
+}
+
 // runAlerts shows or hides the notice row.
 // Usage: cc-probeline alerts on|off
 func runAlerts(args []string) int {

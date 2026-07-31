@@ -133,6 +133,19 @@ func SetBarWidth(path string, width int) error {
 	return setScalar(path, "general", "bar_width", tomlInt(width))
 }
 
+// columnsMin is the narrowest explicit width SetColumns accepts. Below it the
+// table cannot render a single column, and 0 keeps auto-detection.
+const columnsMin = 40
+
+// SetColumns atomically updates [general].columns. 0 restores detection.
+func SetColumns(path string, cols int) error {
+	if cols != 0 && cols < columnsMin {
+		return fmt.Errorf("invalid columns %d: use 0 for auto-detect, or at least %d",
+			cols, columnsMin)
+	}
+	return setScalar(path, "general", "columns", tomlInt(cols))
+}
+
 // SetAlerts atomically updates [general].alerts.
 func SetAlerts(path string, value bool) error {
 	return setScalar(path, "general", "alerts", tomlBool(value))

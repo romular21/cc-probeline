@@ -63,6 +63,8 @@ const (
 	modeCfgColor         // Phase 7.6: cc-probeline color <name> <value>
 	modeCfgStaleMarker   // Phase 7.6: cc-probeline stale-marker on|off
 	modeCfgAlerts        // Phase 7.6: cc-probeline alerts on|off
+	modeCfgColumns       // Phase 7.6: cc-probeline columns <n>
+	modeDiag             // Phase 7.6: cc-probeline diag
 	modeCfgModelVariant  // Phase 7.6: cc-probeline model-variant-tag on|off
 	modeCfgShow          // Phase 6.95.f3: cc-probeline config show
 	modeCfgPriceCheck    // Phase 7.46 Wave B: cc-probeline price-check on|off
@@ -124,6 +126,10 @@ func run(args []string) int {
 		return runStaleMarker(args[2:])
 	case modeCfgAlerts:
 		return runAlerts(args[2:])
+	case modeCfgColumns:
+		return runColumns(args[2:])
+	case modeDiag:
+		return runDiag(args[2:])
 	case modeCfgModelVariant:
 		return runModelVariantTag(args[2:])
 	case modeCfgShow:
@@ -193,6 +199,10 @@ func parseMode(args []string) (mode runMode, strict bool, badFlag string) {
 		return modeCfgStaleMarker, false, ""
 	case "alerts":
 		return modeCfgAlerts, false, ""
+	case "columns":
+		return modeCfgColumns, false, ""
+	case "diag":
+		return modeDiag, false, ""
 	case "model-variant-tag":
 		return modeCfgModelVariant, false, ""
 	case "config":
@@ -479,7 +489,13 @@ func runRender(strict bool) int {
 		d.HintStart = quota.HintStart()
 	}
 
-	cols := renderer.DetectCols()
+	// [general].columns overrides detection, which cannot see the terminal when
+	// Claude Code pipes our stdout and the process has no controlling terminal.
+	cols := ccfg.General.Columns
+	if cols <= 0 {
+		cols = renderer.DetectCols()
+	}
+
 	a := statusline.Assembler{Mode: modeVal, Theme: theme, Cols: cols, Config: pcfg}
 	raw := a.Render(d)
 
