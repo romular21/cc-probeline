@@ -53,6 +53,7 @@ var insertHint = map[string]string{
 	"columns":           "layout width; 0 = detect (unreliable under Claude Code)",
 	"alerts":            "the notice row: cache rebuilt, config errors, update available",
 	"stale_marker":      `the "~" on per-model figures Claude Code has stopped refreshing`,
+	"quota_age_note":    `"(as of Xm ago)" on 5h/7d — how long they held still, not staleness`,
 	"effort_style":      "glyph (○ ◔ ◑ ◕ ●) | word (xhigh)",
 	"model_variant_tag": `keep the "[1m]" tag in the model name`,
 	"tutorial_hints":    "rotating tips; alerts surface either way",

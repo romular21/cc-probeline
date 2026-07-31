@@ -112,6 +112,53 @@ func TestQuotaProbe_FreshAcrossSessions(t *testing.T) {
 	})
 }
 
+// TestQuotaProbe_AgeNoteSuppressed verifies that quota_age_note = false removes
+// the "(as of Xm ago)" suffix and changes nothing else.
+//
+// The note is worth being able to switch off because of what it actually
+// measures. Its age comes from DataTS — the last time any of the four stored
+// numbers changed — not from when a payload last arrived. The 5h/7d figures
+// ride in the status-line payload and are refreshed on every render, so an idle
+// session, which spends nothing and therefore moves nothing, grows the age
+// indefinitely while the percentages beside it stay exactly right. The suffix
+// is sixteen columns wide, which is enough to wrap a merged header.
+//
+// Both windows keep their bars, percentages and countdowns: the key must reach
+// the suffix only, so no one loses a number by quietening a note.
+func TestQuotaProbe_AgeNoteSuppressed(t *testing.T) {
+	t.Setenv("CC_PROBELINE_QUOTA_DIR", t.TempDir())
+
+	p := &probes.QuotaProbe{}
+	th := renderer.Theme{}
+	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+
+	snap := quota.Snapshot{
+		TS:          now.Add(-65 * time.Minute).UnixMilli(),
+		FiveHourPct: 6.0,
+		SevenDayPct: 11.0,
+	}
+	if err := quota.Update(snap); err != nil {
+		t.Fatalf("quota.Update: %v", err)
+	}
+	d := probes.Data{Now: now, Stdin: stdin.Payload{RateLimits: &stdin.RateLimits{
+		FiveHour: stdin.RateWindow{UsedPercentage: 6.0},
+		SevenDay: stdin.RateWindow{UsedPercentage: 11.0},
+	}}}
+
+	shown := p.Render(d, probes.Config{QuotaEnabled: true}, th, probes.LevelFull)
+	if !strings.Contains(shown, "as of") {
+		t.Fatalf("setup: a 65-minute-old snapshot must carry the age note, got %q", shown)
+	}
+
+	hidden := p.Render(d, probes.Config{QuotaEnabled: true, HideQuotaAgeNote: true}, th, probes.LevelFull)
+	if strings.Contains(hidden, "as of") {
+		t.Errorf("HideQuotaAgeNote: want no age note, got %q", hidden)
+	}
+	if want := strings.TrimSuffix(shown, " (as of 65m ago)"); hidden != want {
+		t.Errorf("HideQuotaAgeNote must drop the suffix and nothing else:\n got  %q\n want %q", hidden, want)
+	}
+}
+
 // TestQuotaProbe_BoldRedAbove95 (T-Q4) verifies the bold_red colour rule:
 //   - FiveHourPct > 95 → raw Render output contains "{{color:bold_red}}".
 //   - SevenDayPct > 95 → raw Render output contains "{{color:bold_red}}".

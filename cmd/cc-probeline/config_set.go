@@ -431,6 +431,13 @@ func runStaleMarker(args []string) int {
 		"cc-probeline stale-marker on|off", "stale marker", config.SetStaleMarker)
 }
 
+// runQuotaAgeNote shows or hides the "(as of Xm ago)" suffix on the 5h/7d block.
+// Usage: cc-probeline quota-age-note on|off
+func runQuotaAgeNote(args []string) int {
+	return setChromeToggle(args, os.Stdout, os.Stderr,
+		"cc-probeline quota-age-note on|off", "quota age note", config.SetQuotaAgeNote)
+}
+
 // runBarStyle selects the progress-bar glyph style.
 // Usage: cc-probeline bar-style block|line|low|dot|none
 func runBarStyle(args []string) int {

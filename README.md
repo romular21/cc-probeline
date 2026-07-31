@@ -149,6 +149,8 @@ curl -fsSL https://raw.githubusercontent.com/labzink/cc-probeline/main/scripts/i
 
   The account-wide `5h` and `7d` bars are unaffected — those arrive in the status-line payload on every render and are always current.
 
+  They do carry a note of their own, inherited from upstream: `(as of Xm ago)`, added once the stored numbers have gone ten minutes without changing. It times how long the figures have held still, which is not the same as doubting them — an idle hour spends nothing, so nothing changes, and the note appears beside percentages that are exactly right. It is also sixteen columns wide, enough to push a merged header onto a second row. `quota_age_note = false` drops it.
+
 ### Configuration
 
 Run the interactive wizard from inside Claude Code:
@@ -171,6 +173,7 @@ header_line0   = true # email • project • quota
 header_line1   = true # model • ctx • cost • time • git
 columns        = 0    # layout width; 0 detects it — see `cc-probeline diag`
 alerts         = true # the notice row: cache rebuilt, config errors, update
+quota_age_note = true # "(as of Xm ago)" on 5h/7d — how long they held still
 header_merge   = false # join the two header rows when they fit on one
 bar_width      = 10   # progress-bar segments, 3-20 (8 keeps small values visible)
 bar_style      = "block" # or line / low / dot / none (percentage instead of a bar)

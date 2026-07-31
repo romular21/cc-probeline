@@ -289,6 +289,7 @@ func collectConfigFields(cfg, def *config.Config, verbose bool) []configField {
 	add("general.bar_width", cfg.General.BarWidth, def.General.BarWidth)
 	add("general.bar_style", cfg.General.BarStyle, def.General.BarStyle)
 	add("general.stale_marker", cfg.General.StaleMarker, def.General.StaleMarker)
+	add("general.quota_age_note", cfg.General.QuotaAgeNote, def.General.QuotaAgeNote)
 	add("general.alerts", cfg.General.Alerts, def.General.Alerts)
 	add("general.columns", cfg.General.Columns, def.General.Columns)
 

@@ -62,6 +62,7 @@ const (
 	modeCfgBarStyle      // Phase 7.6: cc-probeline bar-style block|line|low|dot|none
 	modeCfgColor         // Phase 7.6: cc-probeline color <name> <value>
 	modeCfgStaleMarker   // Phase 7.6: cc-probeline stale-marker on|off
+	modeCfgQuotaAgeNote  // Phase 7.6: cc-probeline quota-age-note on|off
 	modeCfgAlerts        // Phase 7.6: cc-probeline alerts on|off
 	modeCfgColumns       // Phase 7.6: cc-probeline columns <n>
 	modeDiag             // Phase 7.6: cc-probeline diag
@@ -124,6 +125,8 @@ func run(args []string) int {
 		return runColor(args[2:])
 	case modeCfgStaleMarker:
 		return runStaleMarker(args[2:])
+	case modeCfgQuotaAgeNote:
+		return runQuotaAgeNote(args[2:])
 	case modeCfgAlerts:
 		return runAlerts(args[2:])
 	case modeCfgColumns:
@@ -197,6 +200,8 @@ func parseMode(args []string) (mode runMode, strict bool, badFlag string) {
 		return modeCfgColor, false, ""
 	case "stale-marker":
 		return modeCfgStaleMarker, false, ""
+	case "quota-age-note":
+		return modeCfgQuotaAgeNote, false, ""
 	case "alerts":
 		return modeCfgAlerts, false, ""
 	case "columns":

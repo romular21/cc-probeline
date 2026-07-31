@@ -201,6 +201,11 @@ type Config struct {
 	// negatively so the zero value keeps the marker.
 	HideStaleMarker bool
 
+	// HideQuotaAgeNote drops the "(as of Xm ago)" suffix on the account-wide
+	// quota block ([general].quota_age_note = false). Stated negatively so the
+	// zero value keeps the suffix.
+	HideQuotaAgeNote bool
+
 	// BarStyle picks the glyphs the Full-level bars are drawn with
 	// ([general].bar_style): "block" (default), "line", "low", "dot", or
 	// "none", which drops the bar and prints the percentage instead. The empty

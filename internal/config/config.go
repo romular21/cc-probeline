@@ -116,6 +116,21 @@ type General struct {
 	// the figure is a weekly window, so an hour of drift is usually small.
 	StaleMarker bool `toml:"stale_marker" json:"stale_marker"`
 
+	// QuotaAgeNote appends "(as of Xm ago)" to the account-wide 5h/7d block
+	// once the stored snapshot's numbers have gone ten minutes without
+	// changing. Default true.
+	//
+	// It measures how long the figures have stood still, not whether they are
+	// trustworthy: the 5h/7d percentages ride in the status-line payload and
+	// arrive fresh on every render, so an idle hour — nothing spent, nothing
+	// to change — is enough to raise it on numbers that are exactly right.
+	// The note is also sixteen columns wide, which is often the difference
+	// between a merged header and a wrapped one. Set false to drop it.
+	//
+	// The per-model figures are the ones that genuinely go stale; their marker
+	// is StaleMarker, and it stays independent of this key.
+	QuotaAgeNote bool `toml:"quota_age_note" json:"quota_age_note"`
+
 	// BarStyle picks the glyphs the Full-level progress bars are drawn with. A
 	// terminal line has one height, so a visually shorter bar can only come
 	// from glyphs that occupy less of it:

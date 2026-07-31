@@ -156,6 +156,11 @@ func SetStaleMarker(path string, value bool) error {
 	return setScalar(path, "general", "stale_marker", tomlBool(value))
 }
 
+// SetQuotaAgeNote atomically updates [general].quota_age_note.
+func SetQuotaAgeNote(path string, value bool) error {
+	return setScalar(path, "general", "quota_age_note", tomlBool(value))
+}
+
 // SetBarStyle atomically updates [general].bar_style.
 // Accepted values: block, line, low, dot, none.
 func SetBarStyle(path, style string) error {

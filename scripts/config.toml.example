@@ -92,6 +92,19 @@ bar_style = "block"
 # Default: true
 stale_marker = true
 
+# Append "(as of Xm ago)" to the account-wide 5h/7d block once its stored numbers
+# have gone ten minutes without changing.
+#
+# Read it as "these figures have not moved in X minutes", not as "these figures
+# may be wrong". The 5h/7d percentages ride in the status-line payload and arrive
+# fresh on every render, so an idle hour — nothing spent, so nothing to change —
+# raises the note on numbers that are exactly right. It is also sixteen columns
+# wide, which is often the difference between a merged header and a wrapped one.
+# The per-model figures are the ones that really can go stale; that marker is
+# stale_marker above, and it is unaffected by this key.
+# Default: true
+quota_age_note = true
+
 # The notice row under the status line: cache rebuilt, subagent cache expired,
 # context compacted, config errors, a pending update.
 #

@@ -142,7 +142,7 @@ func (p *QuotaProbe) Render(d Data, c Config, t renderer.Theme, level Level) str
 			dataTime = time.UnixMilli(snap.DataTS)
 		}
 		age := d.Now.Sub(dataTime)
-		if age > staleDuration {
+		if age > staleDuration && !c.HideQuotaAgeNote {
 			mins := int(age.Minutes())
 			ageSuffix = fmt.Sprintf(" (as of %dm ago)", mins)
 		}

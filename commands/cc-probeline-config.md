@@ -41,6 +41,7 @@ No arguments.
    - `general.mode` (`"standard"` | `"super-compact"`)
    - `general.no_color` (bool) — note: **colour is ON when `no_color` is false**
    - `general.tutorial_hints` (bool)
+   - `general.quota_age_note` (bool) — the `(as of Xm ago)` suffix on the 5h/7d block
    - `general.price_check` (bool) — once-per-day network price/version check (opt-out)
    - `widgets.model`, `widgets.cost`, `widgets.project`, `widgets.email`, `widgets.time`, `widgets.ctx`, `widgets.quota`, `widgets.quota_model`, `widgets.git` (bool each)
 
@@ -90,9 +91,10 @@ Skip this question entirely when `table_rows` is 0 **and** the user did not pick
 - **header:** `Header lines`
 - **question:** `The two header rows. Check ONLY what you want to change. (🟢 = currently shown, 🔴 = hidden)`
 - **multiSelect:** true
-- **options** (2):
+- **options** (3):
   - **Account line** — `🟢 Currently shown (email • project • quota). Check to hide.` / `🔴 …show.` per `header_line0`.
   - **Session line** — `🟢 Currently shown (model • ctx • cost • time • git). Check to hide.` / `🔴 …show.` per `header_line1`.
+  - **Quota age note** — `🟢 Currently shown ("as of Xm ago"). Check to hide — it times how long 5h/7d held still, not whether they are stale.` / `🔴 Currently hidden. Check to show.` per `quota_age_note`. Sixteen columns wide, so it is a common cause of a merged header wrapping.
 
 Mention in the question text that hiding individual segments instead is done on page 2, and that a header line whose every segment is off disappears on its own.
 
@@ -152,6 +154,7 @@ Translate the answers from **both** pages into CLI setters and run them in **one
 - **Column dividers** checked → `cc-probeline table-dividers off` / `… on`.
 - **Account line** checked → `cc-probeline header-line 0 off` if currently shown, else `… on`.
 - **Session line** checked → `cc-probeline header-line 1 off` / `… on`.
+- **Quota age note** checked → `cc-probeline quota-age-note off` if currently shown, else `… on`.
 - **Display mode** checked → `cc-probeline mode <the other value>` (standard ↔ super-compact).
 - **Colour output** checked → flip colour: `cc-probeline no-color on` if colour is currently on (i.e. `no_color` false), else `cc-probeline no-color off`.
 - **Tutorial hints** checked → `cc-probeline hints off` if currently on, else `cc-probeline hints on`.
