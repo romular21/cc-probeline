@@ -177,16 +177,32 @@ func TestVisualLen_MixedAsciiAndCJK(t *testing.T) {
 	}
 }
 
-// §4.3 Insurance — raw ANSI escape sequences must not appear in VisualLen's
-// input (invariant Phase 4.2 §C-10). If they do (some caller breaks the
-// invariant), this test documents the observed runewidth behaviour: control
-// chars have width 0, the rest count normally — so "\x1b[36mfoo\x1b[0m"
-// yields 10. The test pins this number so a regression that starts feeding
-// escape codes through visualLen will be caught loudly rather than silently
-// produce mis-aligned output. PASSES on stub (stub already uses StringWidth).
-func TestVisualLen_NoEscapeInInput_Sanity(t *testing.T) {
-	got := format.VisualLen("\x1b[36mfoo\x1b[0m")
-	if got != 10 {
-		t.Fatalf("VisualLen(escape) = %d, want 10 (documents runewidth behaviour, not desired output)", got)
+// Raw ANSI escapes must measure as the width they draw, which is none.
+//
+// This test used to pin the opposite: it asserted 10 for "\x1b[36mfoo\x1b[0m",
+// documenting — in its own words — "runewidth behaviour, not desired output",
+// on the premise that escapes were not supposed to reach VisualLen at all.
+// The premise did not hold. The palette exposes raw escape strings and the
+// quota probes concatenate them directly, and once colours became user
+// configurable there was no way to express them as markers instead. So the
+// escapes were always arriving, each one measuring about eleven columns wider
+// than it drew, which made FitLine compress segments that still fit and the
+// header merge refuse to join rows that had room.
+//
+// The number below is the visible width: three characters.
+func TestVisualLen_StripsRawEscapes(t *testing.T) {
+	if got := format.VisualLen("\x1b[36mfoo\x1b[0m"); got != 3 {
+		t.Fatalf("VisualLen(escaped foo) = %d, want 3", got)
+	}
+	// 256-colour and truecolour forms, which the configurable palette emits.
+	if got := format.VisualLen("\x1b[38;5;108m5%\x1b[0m"); got != 2 {
+		t.Fatalf("VisualLen(256-colour) = %d, want 2", got)
+	}
+	if got := format.VisualLen("\x1b[38;2;124;178;124m11%\x1b[0m"); got != 3 {
+		t.Fatalf("VisualLen(truecolour) = %d, want 3", got)
+	}
+	// Markers and escapes mixed, which is what a rendered line actually holds.
+	if got := format.VisualLen("{{dim}} • {{reset}}\x1b[35mopus-5\x1b[0m"); got != 9 {
+		t.Fatalf("VisualLen(mixed) = %d, want 9", got)
 	}
 }
