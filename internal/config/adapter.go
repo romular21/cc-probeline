@@ -42,6 +42,7 @@ func ToProbesConfig(cfg Config) probes.Config {
 		BarWidth:          cfg.General.BarWidth,
 		BarStyle:          cfg.General.BarStyle,
 		HideStaleMarker:   !cfg.General.StaleMarker,
+		HideAlerts:        !cfg.General.Alerts,
 		EffortWord:        cfg.General.EffortStyle == "word",
 		ModelVariantTag:   cfg.General.ModelVariantTag,
 

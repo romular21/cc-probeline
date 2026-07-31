@@ -384,6 +384,13 @@ func runColorImpl(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
+// runAlerts shows or hides the notice row.
+// Usage: cc-probeline alerts on|off
+func runAlerts(args []string) int {
+	return setChromeToggle(args, os.Stdout, os.Stderr,
+		"cc-probeline alerts on|off", "alerts", config.SetAlerts)
+}
+
 // runStaleMarker shows or hides the per-model staleness marker.
 // Usage: cc-probeline stale-marker on|off
 func runStaleMarker(args []string) int {

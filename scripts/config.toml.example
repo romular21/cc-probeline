@@ -92,6 +92,16 @@ bar_style = "block"
 # Default: true
 stale_marker = true
 
+# The notice row under the status line: cache rebuilt, subagent cache expired,
+# context compacted, config errors, a pending update.
+#
+# It is not decoration. "Cache rebuilt · 60-min idle TTL passed" means an idle
+# gap past the prompt-cache TTL made the next turn rewrite the whole cache,
+# billed at the cache-write rate — usually the reason a turn suddenly cost more.
+# Setting this false trades that explanation for the row it occupies.
+# Default: true
+alerts = true
+
 # How the reasoning-effort indicator is drawn next to the model name:
 #   "glyph" — filled-circle icon: ○ low · ◔ medium · ◑ high · ◕ xhigh · ● max
 #   "word"  — the level spelled out ("xhigh"), which needs no legend

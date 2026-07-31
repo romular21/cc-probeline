@@ -25,6 +25,7 @@ func Default() *Config {
 			BarWidth:            10,
 			BarStyle:            "block",
 			StaleMarker:         true,
+			Alerts:              true,
 			EffortStyle:         "glyph",
 			ModelVariantTag:     true,
 			TableLegend:         true,

@@ -133,6 +133,11 @@ func SetBarWidth(path string, width int) error {
 	return setScalar(path, "general", "bar_width", tomlInt(width))
 }
 
+// SetAlerts atomically updates [general].alerts.
+func SetAlerts(path string, value bool) error {
+	return setScalar(path, "general", "alerts", tomlBool(value))
+}
+
 // SetStaleMarker atomically updates [general].stale_marker.
 func SetStaleMarker(path string, value bool) error {
 	return setScalar(path, "general", "stale_marker", tomlBool(value))

@@ -88,6 +88,17 @@ type General struct {
 	// so the tag repeats information the line is about to give anyway.
 	ModelVariantTag bool `toml:"model_variant_tag" json:"model_variant_tag"`
 
+	// Alerts shows the notice row under the status line: cache rebuilt, subagent
+	// cache expired, context compacted, config errors, a pending update. Default
+	// true. Set false to drop the row entirely.
+	//
+	// It is not decoration — "Cache rebuilt · 60-min idle TTL passed" is telling
+	// you that an idle gap past the prompt-cache TTL made the next turn rewrite
+	// the whole cache, which is billed at the cache-write rate and is usually the
+	// reason a turn suddenly cost more. Turning it off trades that explanation
+	// for the row it occupies.
+	Alerts bool `toml:"alerts" json:"alerts"`
+
 	// StaleMarker prefixes a per-model figure with "~" once Claude Code's cached
 	// usage snapshot passes the age at which Claude Code itself stops trusting
 	// it (one hour). Default true. Set false to always read the number as-is —

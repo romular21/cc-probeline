@@ -106,6 +106,11 @@ func (a *Assembler) Render(d probes.Data) string {
 	}
 
 	// Phase 4.4 hint widget (C-12): only append when non-empty.
+	// [general].alerts = false drops the row outright, alerts included — the
+	// tutorial_hints key silences only the rotating tips.
+	if a.Config.HideAlerts {
+		return strings.Join(lines, "\n")
+	}
 	if h := a.hint(d); h != "" {
 		lines = append(lines, h)
 	}

@@ -192,6 +192,10 @@ type Config struct {
 	// icon — is the original layout. Set from [general].effort_style.
 	EffortWord bool
 
+	// HideAlerts drops the notice row ([general].alerts = false). Stated
+	// negatively so the zero value keeps the row.
+	HideAlerts bool
+
 	// HideStaleMarker drops the "~" that flags a per-model figure Claude Code
 	// has stopped refreshing ([general].stale_marker = false). Stated
 	// negatively so the zero value keeps the marker.

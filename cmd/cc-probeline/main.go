@@ -62,6 +62,7 @@ const (
 	modeCfgBarStyle      // Phase 7.6: cc-probeline bar-style block|line|low|dot|none
 	modeCfgColor         // Phase 7.6: cc-probeline color <name> <value>
 	modeCfgStaleMarker   // Phase 7.6: cc-probeline stale-marker on|off
+	modeCfgAlerts        // Phase 7.6: cc-probeline alerts on|off
 	modeCfgModelVariant  // Phase 7.6: cc-probeline model-variant-tag on|off
 	modeCfgShow          // Phase 6.95.f3: cc-probeline config show
 	modeCfgPriceCheck    // Phase 7.46 Wave B: cc-probeline price-check on|off
@@ -121,6 +122,8 @@ func run(args []string) int {
 		return runColor(args[2:])
 	case modeCfgStaleMarker:
 		return runStaleMarker(args[2:])
+	case modeCfgAlerts:
+		return runAlerts(args[2:])
 	case modeCfgModelVariant:
 		return runModelVariantTag(args[2:])
 	case modeCfgShow:
@@ -188,6 +191,8 @@ func parseMode(args []string) (mode runMode, strict bool, badFlag string) {
 		return modeCfgColor, false, ""
 	case "stale-marker":
 		return modeCfgStaleMarker, false, ""
+	case "alerts":
+		return modeCfgAlerts, false, ""
 	case "model-variant-tag":
 		return modeCfgModelVariant, false, ""
 	case "config":
