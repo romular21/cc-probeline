@@ -192,7 +192,7 @@ Config is read in precedence order: `CC_PROBELINE_CONFIG=/path` (explicit overri
 
 Full reference — colour thresholds, cost budget, every widget: [`scripts/config.toml.example`](scripts/config.toml.example).
 
-#### Three layouts to start from
+#### Four layouts to start from
 
 The keys stack, so the dashboard scales from eight rows down to one. Pick whichever trade you want and paste it.
 
@@ -238,6 +238,49 @@ project = false
 ```
 
 A header line whose every segment is switched off is dropped entirely rather than left blank, so the widget toggles reclaim the row too.
+
+**The one this fork is run with — 1 row.** Same single line as above, but it spends those columns on the three things worth watching rather than on drawing. Every quota is a bare percentage instead of a bar, which is both shorter and more precise, and the row it frees goes to context and the model:
+
+```toml
+[general]
+table_rows        = 0        # no per-turn table
+header_merge      = true     # both header rows on one line while they fit
+bar_style         = "none"   # a percentage says more than ten segments, in fewer columns
+bar_width         = 8        # only reached if you put the bars back
+effort_style      = "word"   # "xhigh" instead of ◕ — no legend to remember
+model_variant_tag = false    # ctx already spells the window out
+table_legend      = false
+table_frame       = false
+table_dividers    = false
+tutorial_hints    = false
+alerts            = false    # see the note below before copying this line
+quota_age_note    = false    # "(as of Xm ago)" times how long 5h/7d held still, not staleness
+columns           = 155      # your real terminal width — `cc-probeline diag` prints it
+
+[widgets]
+ctx     = true               # the one number that decides when to /compact
+quota   = true
+quota_model = true           # Fable 7d
+model   = true
+effort  = true
+cost    = false              # the table is gone, so this is a total with no story
+project = false              # the terminal title already says it
+email   = false
+time    = false
+git     = false              # the editor shows the branch
+
+[colors]                     # a bare percentage wants a calmer hue than a bar does
+sage  = "#7cb27c"            # healthy band, values shown as text
+amber = "38;5;179"           # notice band, values shown as text
+```
+
+```
+5h: 12% ↻ 0h:40m · 7d: 4% ↻ 6d.7h • Fable 7d: 3% • opus-5 xhigh • ctx: 74% 743K/1000K
+```
+
+Two of those lines are opinions rather than savings, and both are worth a moment. `alerts = false` costs you `Cache rebuilt · 60-min idle TTL passed`, the one notice that explains a turn which suddenly cost more than its neighbours — keep it on until the row genuinely hurts. `columns` is per-machine and does nothing for anyone else: set it to your own width, or leave it at 0 and let detection try.
+
+`Fable 7d` carries no countdown here because the scoped window rolls over with the account-wide one, so the `7d` block beside it already answers the question.
 
 ### Updating
 
