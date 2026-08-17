@@ -247,17 +247,19 @@ func TestQuotaProbe_BoldRedAbove95(t *testing.T) {
 	}
 }
 
-// TestQuotaProbe_FiveHourRoundsHalfUp (Phase 7.45 B5) verifies the asymmetric
-// display rounding: the 5-hour window rounds the shown percentage half-up (99.6
-// → "100%") so the number stops parking on 99 right before the wall, while the
-// 7-day window keeps truncation (99.6 → "99%"). Both windows carry the same
-// 99.6 here, so a single render proves the per-window difference.
+// TestQuotaProbe_BothWindowsRoundHalfUp verifies the payload-fallback display
+// rounding: the 5-hour window rounds the shown percentage half-up (99.6
+// → "100%") so the number stops parking on 99 right before the wall. Since the
+// official-figures alignment, the 7-day window rounds half-up too: every
+// official surface (claude.ai settings, the /usage screen) shows the
+// server-rounded integer, and truncation sat a point below it. Both windows
+// carry the same 99.6 here, so a single render proves the shared rule.
 //
 // The rounding is display-only: it must NOT arm the paid-overage badge. The
 // badge is driven by d.ExtraActive (set in main from the RAW payload pct, never
 // from this rounded number), so with ExtraActive unset no "+$"/"extra" appears
 // even though the 5h number reads "100%".
-func TestQuotaProbe_FiveHourRoundsHalfUp(t *testing.T) {
+func TestQuotaProbe_BothWindowsRoundHalfUp(t *testing.T) {
 	t.Setenv("CC_PROBELINE_QUOTA_DIR", t.TempDir())
 
 	p := &probes.QuotaProbe{}
@@ -289,11 +291,74 @@ func TestQuotaProbe_FiveHourRoundsHalfUp(t *testing.T) {
 	if !strings.Contains(parts[0], "100%") {
 		t.Errorf("5h at 99.6 must round half-up to 100%%, got %q", parts[0])
 	}
-	if !strings.Contains(parts[1], "99%") || strings.Contains(parts[1], "100%") {
-		t.Errorf("7d at 99.6 must truncate to 99%% (no rounding), got %q", parts[1])
+	if !strings.Contains(parts[1], "100%") {
+		t.Errorf("7d at 99.6 must round half-up to 100%% like every official surface, got %q", parts[1])
 	}
 	// Rounded display must not leak into the paid-overage badge.
 	if strings.Contains(got, "+$") || strings.Contains(got, "extra") {
 		t.Errorf("rounded 5h display must not arm the overage badge, got %q", got)
+	}
+}
+
+// TestQuotaProbe_OfficialFigureOverridesPayload verifies the official-figures
+// alignment: while the usage snapshot is fresh, the displayed number is the
+// server-rounded integer from AcctQuota (what claude.ai settings and /usage
+// show), not the payload's fractional value — observed live as probeline "11%"
+// against an official "12%". The ±2 guard drops the override once the live
+// payload has moved materially past the snapshot.
+func TestQuotaProbe_OfficialFigureOverridesPayload(t *testing.T) {
+	t.Setenv("CC_PROBELINE_QUOTA_DIR", t.TempDir()) // hermetic: no machine snapshot
+	p := &probes.QuotaProbe{}
+	cfg := probes.Config{}
+	th := renderer.Theme{}
+	now := time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC)
+
+	official5h, official7d := 8.0, 12.0
+	d := probes.Data{
+		Now: now,
+		Stdin: stdin.Payload{RateLimits: &stdin.RateLimits{
+			FiveHour: stdin.RateWindow{UsedPercentage: 7.2},
+			SevenDay: stdin.RateWindow{UsedPercentage: 11.7},
+		}},
+		AcctQuota5h: &official5h,
+		AcctQuota7d: &official7d,
+	}
+
+	got := p.Render(d, cfg, th, probes.LevelMinimal)
+	parts := strings.SplitN(got, " · ", 2)
+	if len(parts) != 2 {
+		t.Fatalf("render %q: want two windows split by ' · '", got)
+	}
+	if !strings.Contains(parts[0], "8%") {
+		t.Errorf("5h: want official 8%% over payload 7.2, got %q", parts[0])
+	}
+	if !strings.Contains(parts[1], "12%") {
+		t.Errorf("7d: want official 12%% over payload 11.7, got %q", parts[1])
+	}
+
+	// bar_style none prints the number via usageBar rather than pctSuffix —
+	// the path the default block-bar style hides. The official figure must win
+	// there too (this is exactly where the live 11-vs-12 drift was observed).
+	cfg.BarStyle = "none"
+	got = p.Render(d, cfg, th, probes.LevelFull)
+	parts = strings.SplitN(got, " · ", 2)
+	if len(parts) != 2 {
+		t.Fatalf("no-bar render %q: want two windows split by ' · '", got)
+	}
+	if !strings.Contains(parts[0], "8%") {
+		t.Errorf("no-bar 5h: want official 8%% over payload 7.2, got %q", parts[0])
+	}
+	if !strings.Contains(parts[1], "12%") {
+		t.Errorf("no-bar 7d: want official 12%% over payload 11.7, got %q", parts[1])
+	}
+	cfg.BarStyle = ""
+
+	// Divergence guard: payload far past the snapshot → the snapshot no longer
+	// speaks for the present; fall back to the rounded live value.
+	d.Stdin.RateLimits.SevenDay.UsedPercentage = 15.4
+	got = p.Render(d, cfg, th, probes.LevelMinimal)
+	parts = strings.SplitN(got, " · ", 2)
+	if !strings.Contains(parts[1], "15%") {
+		t.Errorf("7d diverged: want rounded payload 15%%, got %q", parts[1])
 	}
 }

@@ -215,3 +215,33 @@ func TestScopedWeekly_HonoursClaudeConfigDir(t *testing.T) {
 		t.Fatalf("expected Fable 22%% from CLAUDE_CONFIG_DIR fixture, got %+v", limits)
 	}
 }
+
+// T-AW1: the account-wide five_hour/seven_day utilization figures are exposed
+// alongside the scoped windows. These are the server-rounded integers every
+// official surface shows; the quota probe prefers them over the payload's
+// fractional used_percentage while the snapshot is fresh.
+func TestAccountWindows_ReadsServerFigures(t *testing.T) {
+	writeUsage(t, realShapeUsage)
+
+	five, seven, fetchedAt, ok := claudejson.AccountWindows()
+
+	if !ok {
+		t.Fatal("AccountWindows: ok = false for a snapshot carrying both windows")
+	}
+	if five != 10 || seven != 9 {
+		t.Errorf("got 5h=%v 7d=%v, want 10 and 9", five, seven)
+	}
+	if fetchedAt.IsZero() {
+		t.Error("fetchedAt must carry the snapshot's fetchedAtMs stamp")
+	}
+}
+
+// T-AW2: a snapshot without account windows (older Claude Code shape) reports
+// ok=false so the caller falls back to the payload.
+func TestAccountWindows_AbsentWindows(t *testing.T) {
+	writeUsage(t, `{"cachedUsageUtilization": {"fetchedAtMs": 1, "utilization": {"limits": []}}}`)
+
+	if _, _, _, ok := claudejson.AccountWindows(); ok {
+		t.Error("ok = true for a snapshot with no five_hour/seven_day windows")
+	}
+}

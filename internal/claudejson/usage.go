@@ -43,6 +43,12 @@ type usageFile struct {
 	Cached struct {
 		FetchedAtMs int64 `json:"fetchedAtMs"`
 		Utilization struct {
+			FiveHour *struct {
+				Utilization *float64 `json:"utilization"`
+			} `json:"five_hour"`
+			SevenDay *struct {
+				Utilization *float64 `json:"utilization"`
+			} `json:"seven_day"`
 			Limits []struct {
 				Kind     string  `json:"kind"`
 				Percent  float64 `json:"percent"`
@@ -61,6 +67,8 @@ type usageFile struct {
 type usageCacheEntry struct {
 	mu        sync.Mutex
 	limits    []ScopedLimit
+	acct5h    *float64
+	acct7d    *float64
 	fetchedAt time.Time
 	mtime     time.Time
 	valid     bool
@@ -84,11 +92,35 @@ var usageCache usageCacheEntry
 func ScopedWeekly() (limits []ScopedLimit, fetchedAt time.Time) {
 	usageCache.mu.Lock()
 	defer usageCache.mu.Unlock()
+	refreshUsageLocked()
+	return usageCache.limits, usageCache.fetchedAt
+}
 
+// AccountWindows returns the account-wide five-hour and seven-day used
+// percentages from the cached usage snapshot, together with the moment Claude
+// Code fetched them. These are the server-rounded integers every official
+// surface displays — the claude.ai settings page, the /usage screen — unlike
+// the fractional used_percentage the status-line payload carries. ok is false
+// when the snapshot is absent or carries no account windows.
+//
+// Same fail-soft and mtime-cache contract as ScopedWeekly.
+func AccountWindows() (fiveHour, sevenDay float64, fetchedAt time.Time, ok bool) {
+	usageCache.mu.Lock()
+	defer usageCache.mu.Unlock()
+	refreshUsageLocked()
+	if usageCache.acct5h == nil || usageCache.acct7d == nil {
+		return 0, 0, time.Time{}, false
+	}
+	return *usageCache.acct5h, *usageCache.acct7d, usageCache.fetchedAt, true
+}
+
+// refreshUsageLocked re-reads the usage snapshot when its mtime moved,
+// populating the package cache. Caller must hold usageCache.mu.
+func refreshUsageLocked() {
 	p := claudeJSONPath()
 	if p == "" {
 		slog.Warn("claudejson: HOME not set; cannot locate ~/.claude.json")
-		return nil, time.Time{}
+		return
 	}
 
 	fi, err := os.Stat(p)
@@ -96,24 +128,24 @@ func ScopedWeekly() (limits []ScopedLimit, fetchedAt time.Time) {
 		if !os.IsNotExist(err) {
 			slog.Warn("claudejson: usage stat failed")
 		}
-		return usageCache.limits, usageCache.fetchedAt
+		return
 	}
 
 	mtime := fi.ModTime()
 	if usageCache.valid && mtime.Equal(usageCache.mtime) {
-		return usageCache.limits, usageCache.fetchedAt
+		return
 	}
 
 	data, err := os.ReadFile(p)
 	if err != nil {
 		slog.Warn("claudejson: usage read failed")
-		return usageCache.limits, usageCache.fetchedAt
+		return
 	}
 
 	var parsed usageFile
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		slog.Warn("claudejson: usage parse failed")
-		return usageCache.limits, usageCache.fetchedAt
+		return
 	}
 
 	out := make([]ScopedLimit, 0, 2)
@@ -146,8 +178,13 @@ func ScopedWeekly() (limits []ScopedLimit, fetchedAt time.Time) {
 	} else {
 		usageCache.fetchedAt = time.Time{}
 	}
+	usageCache.acct5h, usageCache.acct7d = nil, nil
+	if u := parsed.Cached.Utilization.FiveHour; u != nil && u.Utilization != nil {
+		usageCache.acct5h = u.Utilization
+	}
+	if u := parsed.Cached.Utilization.SevenDay; u != nil && u.Utilization != nil {
+		usageCache.acct7d = u.Utilization
+	}
 	usageCache.mtime = mtime
 	usageCache.valid = true
-
-	return usageCache.limits, usageCache.fetchedAt
 }

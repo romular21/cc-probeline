@@ -3,6 +3,7 @@ package probes
 import (
 	"fmt"
 	"log/slog"
+	"math"
 	"time"
 
 	"github.com/labzink/cc-probeline/internal/quota"
@@ -40,16 +41,17 @@ func windowExpired(reset int64, snapTS time.Time, now time.Time, windowLen time.
 }
 
 // displayPctInt converts a used-percentage to the integer shown in the status
-// line. By default it truncates (matching every other percentage display). When
-// roundUp is true it rounds half-up, so the number flips to 100 at 99.5 instead
-// of parking on 99 until a literal 100.0.
+// line. By default it truncates; when roundUp is true it rounds half-up, so the
+// number flips to 100 at 99.5 instead of parking on 99 until a literal 100.0.
 //
-// Phase 7.45 B5: applied to the 5-hour window only. The 5h window is the one
-// that throttles soonest, so a small nudge toward "100" right before the wall is
-// worth the slight asymmetry; the 7-day window keeps truncation (its scale is
-// long enough that an early 100 would mislead, not warn). Display-only: it never
-// feeds the overage trigger or colour thresholds, which stay on the raw float —
-// so the paid-overage badge cannot fire early off a rounded number.
+// History: Phase 7.45 B5 rounded the 5-hour window only and truncated the
+// 7-day one. That made the rendered numbers sit a point below what every
+// official surface (claude.ai settings, the /usage screen) showed for the same
+// instant, so both account windows now round half-up on the payload fallback —
+// and while the usage snapshot is fresh the displayed number is the server's
+// own integer (see the disp5h/disp7d resolution in Render). Display-only: it
+// never feeds the overage trigger or colour thresholds, which stay on the raw
+// float — so the paid-overage badge cannot fire early off a rounded number.
 func displayPctInt(pct float64, roundUp bool) int {
 	if roundUp {
 		return int(pct + 0.5) // pct is always ≥ 0, so +0.5+truncate == round-half-up
@@ -167,6 +169,23 @@ func (p *QuotaProbe) Render(d Data, c Config, t renderer.Theme, level Level) str
 	} else {
 		slog.Warn("quota.Render: called with no snapshot and nil RateLimits; returning empty")
 		return ""
+	}
+
+	// Displayed numbers: while the usage snapshot is fresh, the official
+	// server-rounded integers take over — they are what the claude.ai settings
+	// page and the /usage screen show, and the payload's fractional
+	// used_percentage rounds a point away from them (observed live: payload
+	// 11.x rendered 11 while every official surface said 12). The ±2 guard
+	// keeps a fast-burning session honest: once the live value has moved
+	// materially past the snapshot, the snapshot no longer speaks for the
+	// present. Bars, colour thresholds and the ≥100 triggers stay on the raw
+	// values.
+	disp5h, disp7d := pct5h, pct7d
+	if d.AcctQuota5h != nil && math.Abs(*d.AcctQuota5h-pct5h) < 2 {
+		disp5h = *d.AcctQuota5h
+	}
+	if d.AcctQuota7d != nil && math.Abs(*d.AcctQuota7d-pct7d) < 2 {
+		disp7d = *d.AcctQuota7d
 	}
 
 	// colourReset returns the reset escape only when AnsiEnabled.
@@ -302,10 +321,13 @@ func (p *QuotaProbe) Render(d Data, c Config, t renderer.Theme, level Level) str
 
 	switch level {
 	case LevelFull:
-		bar5h := usageValueColour(pct5h, n5, w5, c5, c, t) + usageBar(pct5h, c) + colourReset
-		bar7d := usageValueColour(pct7d, n7, w7, c7, c, t) + usageBar(pct7d, c) + colourReset
-		val5h := boldRedWrap(pct5h, fmt.Sprintf("%s%s %s", bar5h, pctSuffix(pct5h, c5, true), reset5h))
-		val7d := boldRedWrap(pct7d, fmt.Sprintf("%s%s %s", bar7d, pctSuffix(pct7d, c7, false), reset7d))
+		// Colour and ≥100 triggers stay on the raw values; the bar (and, in
+		// bar-style none, the number it prints) uses the display value so the
+		// official figure wins everywhere it is shown.
+		bar5h := usageValueColour(pct5h, n5, w5, c5, c, t) + usageBar(disp5h, c) + colourReset
+		bar7d := usageValueColour(pct7d, n7, w7, c7, c, t) + usageBar(disp7d, c) + colourReset
+		val5h := boldRedWrap(pct5h, fmt.Sprintf("%s%s %s", bar5h, pctSuffix(disp5h, c5, true), reset5h))
+		val7d := boldRedWrap(pct7d, fmt.Sprintf("%s%s %s", bar7d, pctSuffix(disp7d, c7, true), reset7d))
 		if extraOn5h {
 			val5h += extraBlock(LevelFull)
 		}
@@ -315,11 +337,11 @@ func (p *QuotaProbe) Render(d Data, c Config, t renderer.Theme, level Level) str
 		return fmt.Sprintf("5h: %s · 7d: %s%s", val5h, val7d, ageSuffix)
 	case LevelCompact:
 		bar5h := quotaUsageColor(pct5h, n5, w5, c5, t) +
-			compactBar(pct5h, c) + colourReset
+			compactBar(disp5h, c) + colourReset
 		bar7d := quotaUsageColor(pct7d, n7, w7, c7, t) +
-			compactBar(pct7d, c) + colourReset
-		val5h := boldRedWrap(pct5h, fmt.Sprintf("%s%s %s", bar5h, pctSuffix(pct5h, c5, true), reset5h))
-		val7d := boldRedWrap(pct7d, fmt.Sprintf("%s%s %s", bar7d, pctSuffix(pct7d, c7, false), reset7d))
+			compactBar(disp7d, c) + colourReset
+		val5h := boldRedWrap(pct5h, fmt.Sprintf("%s%s %s", bar5h, pctSuffix(disp5h, c5, true), reset5h))
+		val7d := boldRedWrap(pct7d, fmt.Sprintf("%s%s %s", bar7d, pctSuffix(disp7d, c7, true), reset7d))
 		if extraOn5h {
 			val5h += extraBlock(LevelCompact)
 		}
@@ -332,8 +354,8 @@ func (p *QuotaProbe) Render(d Data, c Config, t renderer.Theme, level Level) str
 		// same rules the bar would use, and the reset countdown is kept like
 		// Compact (6.95.e). The number stays even at ≥100% — it is the only quota
 		// signal at this level (6.95.h hides it only when a bar is present).
-		val5h := minimalPctColour(pct5h, n5, w5, c5, true) + " " + reset5h
-		val7d := minimalPctColour(pct7d, n7, w7, c7, false) + " " + reset7d
+		val5h := minimalPctColour(disp5h, n5, w5, c5, true) + " " + reset5h
+		val7d := minimalPctColour(disp7d, n7, w7, c7, true) + " " + reset7d
 		if extraOn5h {
 			val5h += extraBlock(LevelMinimal)
 		}

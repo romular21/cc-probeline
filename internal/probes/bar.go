@@ -100,7 +100,11 @@ func usageValueColour(pct, notice, warn, critical float64, c Config, t renderer.
 // cost the user their bar.
 func usageBar(percent float64, c Config) string {
 	if barStyleNoBar(c) {
-		return fmt.Sprintf("%d%%", displayPctInt(percent, false))
+		// No-bar mode prints the number itself, so it follows the same
+		// round-half-up rule as every other displayed percentage — truncation
+		// here sat a point below the official surfaces (claude.ai settings,
+		// /usage) whenever the fraction crossed .5.
+		return fmt.Sprintf("%d%%", displayPctInt(percent, true))
 	}
 	return restyleBar(rawUsageBar(percent, c), c)
 }
@@ -110,7 +114,7 @@ func usageBar(percent float64, c Config) string {
 // out of room, so it is not the place to honour a width preference.
 func compactBar(percent float64, c Config) string {
 	if barStyleNoBar(c) {
-		return fmt.Sprintf("%d%%", displayPctInt(percent, false))
+		return fmt.Sprintf("%d%%", displayPctInt(percent, true))
 	}
 	return restyleBar(renderer.ProgressBar(percent), c)
 }

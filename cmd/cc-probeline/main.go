@@ -414,6 +414,17 @@ func runRender(strict bool) int {
 		d.ScopedQuota, d.ScopedQuotaFetchedAt = claudejson.ScopedWeekly()
 	}
 
+	// Official account-wide figures from the same snapshot. While fresh they
+	// take over the displayed 5h/7d numbers: they are the server-rounded
+	// integers the claude.ai settings page and the /usage screen show, where
+	// the payload's fractional used_percentage rounds a point away. The
+	// freshness bound mirrors Claude Code's own contract — its /usage reader
+	// treats the snapshot as valid for an hour — and the ±2 divergence guard
+	// in the probe handles a session that burned past the snapshot meanwhile.
+	if five, seven, fetched, ok := claudejson.AccountWindows(); ok && now.Sub(fetched) <= time.Hour {
+		d.AcctQuota5h, d.AcctQuota7d = &five, &seven
+	}
+
 	// That cache is written by exactly one thing — Claude Code's /usage screen —
 	// so left alone it freezes for hours. Unless the user opted out, run the
 	// screen headlessly in the background, at most once per five minutes across

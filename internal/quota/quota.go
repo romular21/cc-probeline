@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -66,10 +67,22 @@ func quotaDir() string {
 
 // quotaPath returns the full path of the quota JSON file.
 // Returns "" when the directory cannot be determined.
+//
+// The snapshot is scoped per Claude Code config dir, the same way the
+// usage-refresh gate is: multi-client setups (several subscriptions via
+// CLAUDE_CONFIG_DIR) carry different quota numbers per client, and a shared
+// file would let one subscription's freshest-wins write serve the other
+// subscription's figures on the fallback path. The default client keeps the
+// legacy unsuffixed name.
 func quotaPath() string {
 	dir := quotaDir()
 	if dir == "" {
 		return ""
+	}
+	if cfg := os.Getenv("CLAUDE_CONFIG_DIR"); cfg != "" {
+		h := fnv.New32a()
+		_, _ = h.Write([]byte(cfg))
+		return filepath.Join(dir, fmt.Sprintf("quota-%08x.json", h.Sum32()))
 	}
 	return filepath.Join(dir, "quota.json")
 }

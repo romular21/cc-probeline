@@ -63,6 +63,16 @@ type Data struct {
 	// Zero when unknown; used to age the figures out with an "as of" suffix.
 	ScopedQuotaFetchedAt time.Time
 
+	// AcctQuota5h / AcctQuota7d carry the account-wide window percentages from
+	// the same usage snapshot — the server-rounded figures every official
+	// surface shows (claude.ai settings, the /usage screen). The status-line
+	// payload's used_percentage is fractional and rounds differently, which
+	// made the rendered numbers drift ±1 point from the official ones.
+	// Populated by main via claudejson.AccountWindows only while the snapshot
+	// is fresh; nil means "no official figure — fall back to the payload".
+	AcctQuota5h *float64
+	AcctQuota7d *float64
+
 	// Phase 6.8.a: delta-based cost fields.
 	// SessionTotal is the cost incurred in this session (ccTotal − BaselineCost).
 	// Populated by main after cost.Reconcile; zero when state not yet loaded.
