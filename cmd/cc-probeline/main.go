@@ -34,6 +34,7 @@ import (
 	"github.com/labzink/cc-probeline/internal/state"
 	"github.com/labzink/cc-probeline/internal/statusline"
 	"github.com/labzink/cc-probeline/internal/stdin"
+	"github.com/labzink/cc-probeline/internal/usagerefresh"
 )
 
 type runMode int
@@ -332,8 +333,13 @@ func runRender(strict bool) int {
 	ccTotal := payload.Cost.TotalCostUSD
 	durMS := payload.Cost.TotalAPIDurationMS
 	var st *state.Session
+	firstRender := false
 	if payload.SessionID != "" {
 		st = state.Load(payload.SessionID)
+		// Captured before Reconcile flips Initialized: the usage-cache refresh
+		// below always fires on a session's first render, so a new session
+		// learns whether this account has a model-scoped window at all.
+		firstRender = st != nil && !st.Initialized
 		allTurns := make([]parser.Turn, len(session.Turns))
 		copy(allTurns, session.Turns)
 		for i := range subagents {
@@ -406,6 +412,16 @@ func runRender(strict bool) int {
 	// render path stays free of global state. Fail-soft: nil hides the segment.
 	if ccfg.Widgets.QuotaModel {
 		d.ScopedQuota, d.ScopedQuotaFetchedAt = claudejson.ScopedWeekly()
+	}
+
+	// That cache is written by exactly one thing — Claude Code's /usage screen —
+	// so left alone it freezes for hours. Unless the user opted out, run the
+	// screen headlessly in the background, at most once per five minutes across
+	// the whole machine, and only for accounts that have something to keep
+	// fresh. Fire-and-forget: this render never waits for it.
+	if ccfg.General.UsageRefresh {
+		watching := len(d.ScopedQuota) > 0 || claudejson.HasExtraUsageEnabled()
+		usagerefresh.Maybe(now, firstRender, watching)
 	}
 
 	// Populate delta-cost fields from reconciled state (Phase 6.8.a / 6.9.a).

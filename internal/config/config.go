@@ -59,6 +59,18 @@ type General struct {
 	// (data rows, legend and frame alike) is dropped from the status line.
 	TableRows int `toml:"table_rows" json:"table_rows"`
 
+	// UsageRefresh enables keeping Claude Code's usage cache fresh (ported
+	// from upstream Phase 7.48). Once every five minutes at most, cc-probeline
+	// runs `claude -p "/usage"` headlessly so that ~/.claude.json carries a
+	// current model-scoped weekly limit and current overage figures — that
+	// cache is written by nothing else, and without this it freezes for hours.
+	// cc-probeline still makes no network request of its own: the call is
+	// Claude Code talking to Anthropic with the user's own credentials, exactly
+	// as the /usage screen does. Default true. Set false to have the binary
+	// launch nothing at all; the quota block then falls back to whatever cache
+	// exists, and to nothing when it is stale.
+	UsageRefresh bool `toml:"usage_refresh" json:"usage_refresh"`
+
 	// TableLegend shows the legend row ("# role model cache r/w out ~cost
 	// tool") under the per-turn table, together with its ├─┼─┤ separator.
 	// Default true. Set false to reclaim two status-line rows once the column

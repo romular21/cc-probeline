@@ -174,6 +174,7 @@ header_line1   = true # model • ctx • cost • time • git
 columns        = 0    # layout width; 0 detects it — see `cc-probeline diag`
 alerts         = true # the notice row: cache rebuilt, config errors, update
 quota_age_note = true # "(as of Xm ago)" on 5h/7d — how long they held still
+usage_refresh  = true # keep the /usage cache fresh via headless `claude -p "/usage"`
 header_merge   = false # join the two header rows when they fit on one
 bar_width      = 10   # progress-bar segments, 3-20 (8 keeps small values visible)
 bar_style      = "block" # or line / low / dot / none (percentage instead of a bar)

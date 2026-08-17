@@ -26,6 +26,7 @@ func Default() *Config {
 			BarStyle:            "block",
 			StaleMarker:         true,
 			QuotaAgeNote:        true,
+			UsageRefresh:        true,
 			Alerts:              true,
 			Columns:             0,
 			EffortStyle:         "glyph",
