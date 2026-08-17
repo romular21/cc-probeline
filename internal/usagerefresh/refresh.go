@@ -25,6 +25,8 @@ package usagerefresh
 
 import (
 	"encoding/json"
+	"fmt"
+	"hash/fnv"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -46,6 +48,10 @@ const (
 	// gateName is the shared file that throttles refreshes across every Claude
 	// Code window on the machine — the status line runs several times per second
 	// per window, so the gate has to be shared state, not per-process memory.
+	// Multi-client setups (several subscriptions via CLAUDE_CONFIG_DIR) get one
+	// gate per config dir — see gatePath — because each client refreshes its own
+	// `.claude.json`, and sharing a stamp would let one subscription's refresh
+	// starve the other's for a whole TTL.
 	gateName = "usage-refresh.json"
 
 	// NoRefreshEnv is set on the child process. The child is a full Claude Code
@@ -247,6 +253,15 @@ func gatePath() string {
 	dir := gateDir()
 	if dir == "" {
 		return ""
+	}
+	// One gate per Claude Code config dir: the launched child inherits
+	// CLAUDE_CONFIG_DIR (it rides in on os.Environ), so it refreshes that
+	// client's own `.claude.json`, and the throttle must be scoped the same
+	// way. The default client keeps the legacy unsuffixed name.
+	if cfg := os.Getenv("CLAUDE_CONFIG_DIR"); cfg != "" {
+		h := fnv.New32a()
+		_, _ = h.Write([]byte(cfg))
+		return filepath.Join(dir, fmt.Sprintf("usage-refresh-%08x.json", h.Sum32()))
 	}
 	return filepath.Join(dir, gateName)
 }

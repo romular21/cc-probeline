@@ -43,11 +43,22 @@ type cacheEntry struct {
 // pkgCache is the package-level mtime cache.
 var pkgCache cacheEntry
 
-// claudeJSONPath returns the path to ~/.claude.json, honouring the test
-// override env var CC_PROBELINE_CLAUDE_JSON.
+// claudeJSONPath returns the path to the Claude Code state file, honouring the
+// test override env var CC_PROBELINE_CLAUDE_JSON.
+//
+// Multi-client setups run several subscriptions off one machine by launching
+// the same binary with different CLAUDE_CONFIG_DIR values (e.g. a `claude2`
+// shell function exporting CLAUDE_CONFIG_DIR=$HOME/.claude2). Each config dir
+// carries its own credentials and its own `.claude.json`, and the status-line
+// process inherits the variable from the client that spawned it — so honouring
+// it here is what keeps the quota figures attributed to the subscription this
+// session actually burns, not to whichever client owns ~/.claude.json.
 func claudeJSONPath() string {
 	if p := os.Getenv("CC_PROBELINE_CLAUDE_JSON"); p != "" {
 		return p
+	}
+	if dir := os.Getenv("CLAUDE_CONFIG_DIR"); dir != "" {
+		return dir + "/.claude.json"
 	}
 	home := os.Getenv("HOME")
 	if home == "" {

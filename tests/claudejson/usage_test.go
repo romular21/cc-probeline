@@ -184,3 +184,34 @@ func TestScopedWeekly_FailSoft(t *testing.T) {
 		}
 	})
 }
+
+// T-MQ-MC: multi-client setups select the subscription via CLAUDE_CONFIG_DIR
+// (e.g. `claude2() { CLAUDE_CONFIG_DIR=$HOME/.claude2 command claude "$@"; }`).
+// The status line inherits that variable from the client that spawned it, and
+// the reader must follow it to that client's own .claude.json instead of the
+// default ~/.claude.json — otherwise every client renders subscription 1's
+// figures.
+func TestScopedWeekly_HonoursClaudeConfigDir(t *testing.T) {
+	t.Setenv("CC_PROBELINE_CLAUDE_JSON", "") // fall through to real resolution
+
+	cfgDir := t.TempDir()
+	body := `{"cachedUsageUtilization": {"fetchedAtMs": 1786942169858, "utilization": {"limits": [
+	  {"kind": "weekly_scoped", "percent": 22,
+	   "resets_at": "2026-08-20T01:00:00.000000+00:00",
+	   "scope": {"model": {"display_name": "Fable"}}}
+	]}}}`
+	if err := os.WriteFile(filepath.Join(cfgDir, ".claude.json"), []byte(body), 0o600); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	// HOME points at a directory with NO .claude.json: if the resolver ignored
+	// CLAUDE_CONFIG_DIR it would find nothing and return the cached previous
+	// value, not this fixture's 22%.
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("CLAUDE_CONFIG_DIR", cfgDir)
+
+	limits, _ := claudejson.ScopedWeekly()
+
+	if len(limits) != 1 || limits[0].Model != "Fable" || limits[0].Percent != 22 {
+		t.Fatalf("expected Fable 22%% from CLAUDE_CONFIG_DIR fixture, got %+v", limits)
+	}
+}

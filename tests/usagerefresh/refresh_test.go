@@ -232,3 +232,36 @@ func TestMaybe_LiveChildBlocksTheNextRefresh(t *testing.T) {
 		t.Errorf("launches = %d, want 1 while the previous refresh is still alive", launches)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Property: the throttle is scoped per Claude Code config dir. Two clients on
+// one machine (default + CLAUDE_CONFIG_DIR=$HOME/.claude2) refresh two
+// different .claude.json files, so one subscription's stamp must not starve
+// the other's refresh for a whole TTL.
+// ---------------------------------------------------------------------------
+
+func TestMaybe_ConfigDirScopesTheGate(t *testing.T) {
+	calls := harness(t)
+
+	t.Setenv("CLAUDE_CONFIG_DIR", "/home/u/.claude2")
+	usagerefresh.Maybe(refreshNow, true, false)
+	usagerefresh.Maybe(refreshNow.Add(time.Second), false, true)
+	if *calls != 1 {
+		t.Fatalf("claude2 client: launches = %d, want 1 (second tick inside TTL)", *calls)
+	}
+
+	// The default client renders in the same instant: its gate is its own, so
+	// the claude2 stamp must not throttle it.
+	t.Setenv("CLAUDE_CONFIG_DIR", "")
+	usagerefresh.Maybe(refreshNow.Add(2*time.Second), true, false)
+	if *calls != 2 {
+		t.Errorf("default client: launches = %d, want 2 (own gate, own TTL)", *calls)
+	}
+
+	// And back on claude2 the original stamp still holds.
+	t.Setenv("CLAUDE_CONFIG_DIR", "/home/u/.claude2")
+	usagerefresh.Maybe(refreshNow.Add(3*time.Second), false, true)
+	if *calls != 2 {
+		t.Errorf("claude2 again: launches = %d, want 2 (still inside its TTL)", *calls)
+	}
+}
