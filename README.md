@@ -149,6 +149,8 @@ curl -fsSL https://raw.githubusercontent.com/labzink/cc-probeline/main/scripts/i
 
   The account-wide `5h` and `7d` bars are unaffected — those arrive in the status-line payload on every render and are always current.
 
+- The `ctx` percentage can sit ~2 points below the number in Claude Code's own footer near the top of the window (e.g. `ctx: 96%` against a footer `98%`). Both are real: cc-probeline shows the payload's own `used_percentage` — the documented input-only formula against the full window size — while the footer divides the same tokens by the usable window minus a ~20K reserve for the reply. The reserve is undocumented and version-dependent, so this tool deliberately stays on the documented field rather than chasing the footer.
+
   They do carry a note of their own, inherited from upstream: `(as of Xm ago)`, added once the stored numbers have gone ten minutes without changing. It times how long the figures have held still, which is not the same as doubting them — an idle hour spends nothing, so nothing changes, and the note appears beside percentages that are exactly right. It is also sixteen columns wide, enough to push a merged header onto a second row. `quota_age_note = false` drops it.
 
 ### Configuration
