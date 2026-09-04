@@ -462,6 +462,18 @@ func aggregateSubagent(records []Record, lastBoundary time.Time) SubagentStats {
 		s.Model = last.Model // already canonical from CanonicalModelKey above
 	}
 
+	// A transcript can hold records but no turns. ParseLines keeps user-text
+	// records as activation boundaries and drops assistant records whose usage
+	// block is empty — which is exactly what Claude Code writes for a synthetic
+	// "API Error" reply. The zero-record case returns at the top of this
+	// function; this one used to fall through to Turns[0] on an empty slice and
+	// panic, and since the offending record stays in the transcript the status
+	// line then stayed blank for the rest of that session. Leave the activation
+	// fields at their zero values, as the len(s.Turns) > 0 guard above does.
+	if len(s.Turns) == 0 {
+		return s
+	}
+
 	// Compute ActivationStart and CurrentTurnNum.
 	// When lastBoundary is non-zero, the current activation starts at the first
 	// turn whose Timestamp is strictly after the boundary. Fallback (Insurance #1):

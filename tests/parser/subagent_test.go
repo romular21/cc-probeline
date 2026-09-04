@@ -1068,3 +1068,52 @@ func TestSubagent_ActivationStartAfterSendMsg(t *testing.T) {
 		t.Errorf("CurrentTurnNum=%d, want 2 (only turns after user-text boundary)", agent.CurrentTurnNum)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// T13 — BoundaryOnlyTranscript (regression)
+// ff6: one user-text record plus one synthetic "API Error" assistant record
+// whose usage block is all zeros. ParseLines keeps the boundary record and
+// drops the zero-usage assistant one, so the transcript has records but no
+// turns. aggregateSubagent used to index Turns[0] there and panic, which
+// killed every subsequent render of the whole status line.
+// ---------------------------------------------------------------------------
+
+// TestCollectSubagents_BoundaryOnlyTranscript verifies that a transcript whose
+// only assistant record was dropped for having an empty usage block yields a
+// SubagentStats with zero aggregates instead of panicking.
+func TestCollectSubagents_BoundaryOnlyTranscript(t *testing.T) {
+	sessionDir := setupSessionDir(t, []string{"agent-ff6.jsonl", "agent-ff6.meta.json"})
+
+	got, err := parser.CollectSubagents(context.Background(), sessionDir)
+	if err != nil {
+		t.Fatalf("CollectSubagents: unexpected error: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("len(got)=%d, want 1", len(got))
+	}
+	ff6 := got[0]
+	if ff6.AgentID != "ff6" {
+		t.Errorf("AgentID=%q, want %q", ff6.AgentID, "ff6")
+	}
+	if ff6.TranscriptPath == "" {
+		t.Error("TranscriptPath: want non-empty (file path recorded even with no turns)")
+	}
+	if ff6.AgentType != "general-purpose" {
+		t.Errorf("AgentType=%q, want %q (from meta.json)", ff6.AgentType, "general-purpose")
+	}
+	if len(ff6.Turns) != 0 {
+		t.Errorf("len(Turns)=%d, want 0 (the only assistant record had an empty usage block)", len(ff6.Turns))
+	}
+	if ff6.TurnCount != 0 {
+		t.Errorf("TurnCount=%d, want 0", ff6.TurnCount)
+	}
+	if !ff6.ActivationStart.IsZero() {
+		t.Errorf("ActivationStart=%v, want zero (no turn to start an activation)", ff6.ActivationStart)
+	}
+	if ff6.CurrentTurnNum != 0 {
+		t.Errorf("CurrentTurnNum=%d, want 0", ff6.CurrentTurnNum)
+	}
+	if !ff6.LastTimestamp.IsZero() {
+		t.Errorf("LastTimestamp=%v, want zero (no turn)", ff6.LastTimestamp)
+	}
+}
