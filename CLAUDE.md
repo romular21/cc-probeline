@@ -19,6 +19,11 @@ go build ./... && go test ./... && go vet ./...
 `go test ./...` should report 22 passing packages and no failures. Tests are
 hermetic — they touch no real config, no `~/.claude`, and no network.
 
+Known issue: on WSL2 `tests/quota`'s `TestF11_Update_RenameError` fails — it
+asserts that renaming a file over a directory returns an error, and on this
+filesystem it does not. Verified 2026-09-05 to predate any local change and to
+be independent of the code under test; the other 22 packages pass.
+
 To try a change against a real session without installing:
 
 ```sh
