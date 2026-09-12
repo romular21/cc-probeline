@@ -24,12 +24,15 @@ func runInstallCmd(t *testing.T, home string, extra ...string) (stdout, stderr s
 	t.Helper()
 	args := append([]string{"install"}, extra...)
 	cmd := exec.Command(binaryPath, args...)
-	cmd.Env = append(os.Environ(),
-		"HOME="+home,
+	// mergeEnv dedupes: append(os.Environ(), "USERPROFILE=...") produces TWO
+	// USERPROFILE entries and Windows getenv takes the FIRST (the real one) —
+	// which is exactly how these tests escaped the sandbox twice.
+	cmd.Env = mergeEnv([]string{
+		"HOME=" + home,
 		// os.UserHomeDir reads USERPROFILE on Windows; without it the child
 		// binary escapes the test sandbox into the REAL ~/.claude/settings.json.
-		"USERPROFILE="+home,
-		"XDG_CONFIG_HOME="+filepath.Join(home, ".config"))
+		"USERPROFILE=" + home,
+		"XDG_CONFIG_HOME=" + filepath.Join(home, ".config")})
 
 	var outBuf, errBuf strings.Builder
 	cmd.Stdout = &outBuf
@@ -147,7 +150,7 @@ func TestInstall_PreservesOtherKeys(t *testing.T) {
 		t.Fatal("statusLine absent or wrong type")
 	}
 	cmd, _ := block["command"].(string)
-	if !strings.HasSuffix(cmd, "cc-probeline") {
+	if !(strings.HasSuffix(cmd, "cc-probeline") || strings.HasSuffix(cmd, "cc-probeline.exe")) {
 		t.Fatalf("statusLine.command does not end with cc-probeline: %q", cmd)
 	}
 }
@@ -240,7 +243,7 @@ func TestInstall_ForceWithBackup(t *testing.T) {
 		t.Fatal("statusLine absent or wrong type after --force install")
 	}
 	cmd, _ := block["command"].(string)
-	if !strings.HasSuffix(cmd, "cc-probeline") {
+	if !(strings.HasSuffix(cmd, "cc-probeline") || strings.HasSuffix(cmd, "cc-probeline.exe")) {
 		t.Fatalf("statusLine.command does not end with cc-probeline after --force: %q", cmd)
 	}
 }
@@ -314,7 +317,7 @@ func TestInstall_DefaultBinaryPath(t *testing.T) {
 		t.Fatal("statusLine absent or wrong type")
 	}
 	cmd, _ := block["command"].(string)
-	if !strings.HasSuffix(cmd, "cc-probeline") {
+	if !(strings.HasSuffix(cmd, "cc-probeline") || strings.HasSuffix(cmd, "cc-probeline.exe")) {
 		t.Fatalf("block.command does not end with cc-probeline: %q", cmd)
 	}
 	if !filepath.IsAbs(cmd) {
@@ -405,7 +408,7 @@ func TestInstall_IfAbsent_NoStatusLine_Wires(t *testing.T) {
 	if !ok {
 		t.Fatal("statusLine absent after --if-absent install on empty settings")
 	}
-	if cmd, _ := block["command"].(string); !strings.HasSuffix(cmd, "cc-probeline") {
+	if cmd, _ := block["command"].(string); !(strings.HasSuffix(cmd, "cc-probeline") || strings.HasSuffix(cmd, "cc-probeline.exe")) {
 		t.Fatalf("statusLine.command does not end with cc-probeline: %q", cmd)
 	}
 }

@@ -14,6 +14,19 @@ And it takes exactly as much room as you let it: every row is configurable, down
 
 ![cc-probeline live dashboard: a Claude Code session where every turn lands priced, subagents bill in real time, the cache TTL ages ⏱ 60m → 0m and rebuilds in dollars, and the 5h limit fills to 100% with overage — all in the status line](assets/video/hero.gif)
 
+
+## Native Windows
+
+Works out of the box since 2026-09-12: `install --merge-settings` writes the
+`statusLine.command` path with forward slashes — the one spelling accepted by
+the Windows API, cmd.exe and Git Bash alike (Claude Code may spawn the status
+line through a POSIX shell, where an unquoted backslashed path silently
+collapses and the line never renders). Re-running install repairs an older
+backslashed config in place. Log pruning also works on Windows now (the
+rename-over-open-file sharing violation is fixed). A prebuilt
+`cc-probeline-windows-amd64.exe` is attached to the fork's
+`fork-20260912-windows-fix` release; building from source works as on Linux.
+
 ## Why this fork exists
 
 The original renders a fixed eight-row dashboard. For seeing everything at once

@@ -74,12 +74,15 @@ func runUninstallCmd(t *testing.T, home string, extra ...string) (stdout, stderr
 	t.Helper()
 	args := append([]string{"uninstall"}, extra...)
 	cmd := exec.Command(binaryPath, args...)
-	cmd.Env = append(os.Environ(),
-		"HOME="+home,
+	// mergeEnv dedupes: append(os.Environ(), "USERPROFILE=...") produces TWO
+	// USERPROFILE entries and Windows getenv takes the FIRST (the real one) —
+	// which is exactly how these tests escaped the sandbox twice.
+	cmd.Env = mergeEnv([]string{
+		"HOME=" + home,
 		// os.UserHomeDir reads USERPROFILE on Windows; without it the child
 		// binary escapes the test sandbox into the REAL ~/.claude/settings.json.
-		"USERPROFILE="+home,
-		"XDG_CONFIG_HOME="+filepath.Join(home, ".config"))
+		"USERPROFILE=" + home,
+		"XDG_CONFIG_HOME=" + filepath.Join(home, ".config")})
 
 	var outBuf, errBuf strings.Builder
 	cmd.Stdout = &outBuf
@@ -308,9 +311,14 @@ func TestUninstall_RestoresForeignStatusLine(t *testing.T) {
 	// the pre-install backup path in install-state.json.
 	installCmd := exec.Command(binaryPath,
 		"install", "--merge-settings", "--binary-path", binaryPath, "--force")
-	installCmd.Env = append(os.Environ(),
-		"HOME="+home,
-		"XDG_CONFIG_HOME="+filepath.Join(home, ".config"))
+	// mergeEnv, not append: without USERPROFILE (what os.UserHomeDir reads
+	// on Windows) this inline install escaped the sandbox and rewrote the
+	// REAL ~/.claude/settings.json of whoever ran the suite; and appended
+	// duplicates lose to the inherited first occurrence there.
+	installCmd.Env = mergeEnv([]string{
+		"HOME=" + home,
+		"USERPROFILE=" + home,
+		"XDG_CONFIG_HOME=" + filepath.Join(home, ".config")})
 	if out, err := installCmd.CombinedOutput(); err != nil {
 		t.Fatalf("install failed: %v\noutput: %s", err, out)
 	}
@@ -319,7 +327,7 @@ func TestUninstall_RestoresForeignStatusLine(t *testing.T) {
 	betweenInstallAndUninstall := readSettings(t, home)
 	sl, _ := betweenInstallAndUninstall["statusLine"].(map[string]any)
 	cmd, _ := sl["command"].(string)
-	if !strings.HasSuffix(cmd, "cc-probeline") {
+	if !(strings.HasSuffix(cmd, "cc-probeline") || strings.HasSuffix(cmd, "cc-probeline.exe")) {
 		t.Fatalf("after install, statusLine.command should be ours, got %q", cmd)
 	}
 
