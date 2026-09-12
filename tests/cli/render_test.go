@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -80,6 +81,11 @@ func TestMain(m *testing.M) {
 	defer os.RemoveAll(dir)
 
 	binaryPath = filepath.Join(dir, "cc-probeline")
+	if runtime.GOOS == "windows" {
+		// Windows refuses to exec a binary without the .exe suffix, and
+		// `go build -o` does not add it for an explicit file path.
+		binaryPath += ".exe"
+	}
 	cmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/cc-probeline/")
 	cmd.Dir = projectRoot()
 	if out, err := cmd.CombinedOutput(); err != nil {

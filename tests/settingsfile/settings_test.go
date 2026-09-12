@@ -1,6 +1,7 @@
 package settingsfile_test
 
 import (
+	"runtime"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -113,6 +114,9 @@ func TestRemoveStatusLine_Preserves(t *testing.T) {
 // T-S7: Save is atomic — if the tmp write would fail, the original file is untouched.
 // We induce failure by making the destination directory read-only so WriteFile to .tmp fails.
 func TestSaveAtomic(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("os.Chmod on a directory does not enforce read-only on Windows")
+	}
 	dir := t.TempDir()
 	origPath := filepath.Join(dir, "settings.json")
 

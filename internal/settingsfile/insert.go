@@ -2,6 +2,7 @@ package settingsfile
 
 import (
 	"errors"
+	"path/filepath"
 	"reflect"
 )
 
@@ -35,10 +36,19 @@ func InsertStatusLine(s Settings, opts InsertOpts) (Settings, error) {
 		ri = 5
 	}
 
+	// Claude Code may spawn statusLine.command through a POSIX shell even on
+	// Windows (e.g. Git Bash), where backslashes are escape characters: an
+	// unquoted `C:\Users\...` silently collapses to `C:Users...` and the
+	// status line never renders. Forward slashes are accepted by the Windows
+	// API, cmd.exe AND bash, so they are the only spawn-safe spelling.
+	// ToSlash is a no-op on non-Windows, where a backslash is a legal
+	// filename character that must not be rewritten.
+	bin := filepath.ToSlash(opts.BinaryPath)
+
 	// Build the new block.
 	newBlock := map[string]any{
 		"type":            "command",
-		"command":         opts.BinaryPath,
+		"command":         bin,
 		"padding":         opts.Padding,
 		"refreshInterval": ri,
 	}
@@ -60,7 +70,7 @@ func InsertStatusLine(s Settings, opts InsertOpts) (Settings, error) {
 			// existing blocks that were loaded from JSON.
 			comparableBlock := map[string]any{
 				"type":            "command",
-				"command":         opts.BinaryPath,
+				"command":         bin,
 				"padding":         toFloat64(opts.Padding),
 				"refreshInterval": toFloat64(ri),
 			}

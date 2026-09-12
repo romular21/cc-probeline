@@ -24,7 +24,12 @@ func runInstallCmd(t *testing.T, home string, extra ...string) (stdout, stderr s
 	t.Helper()
 	args := append([]string{"install"}, extra...)
 	cmd := exec.Command(binaryPath, args...)
-	cmd.Env = append(os.Environ(), "HOME="+home, "XDG_CONFIG_HOME="+filepath.Join(home, ".config"))
+	cmd.Env = append(os.Environ(),
+		"HOME="+home,
+		// os.UserHomeDir reads USERPROFILE on Windows; without it the child
+		// binary escapes the test sandbox into the REAL ~/.claude/settings.json.
+		"USERPROFILE="+home,
+		"XDG_CONFIG_HOME="+filepath.Join(home, ".config"))
 
 	var outBuf, errBuf strings.Builder
 	cmd.Stdout = &outBuf

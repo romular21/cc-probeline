@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -312,6 +313,9 @@ func TestPrune_OncePerProcess(t *testing.T) {
 // directory), Append returns nil and writes to os.Stderr.
 // Case 6: see plans/concepts/phase-3-step1-concept.md §5.4.
 func TestFallback_Stderr(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("0o444 directory permissions do not block file creation on Windows")
+	}
 	if os.Getuid() == 0 {
 		t.Skip("running as root: permission check unreliable")
 	}

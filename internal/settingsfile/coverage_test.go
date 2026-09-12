@@ -5,6 +5,7 @@
 package settingsfile
 
 import (
+	"runtime"
 	"os"
 	"path/filepath"
 	"strings"
@@ -130,6 +131,9 @@ func TestRemoveStatusLine_internal(t *testing.T) {
 
 // TestSave_ReadOnlyDir verifies that Save returns error when dir is read-only.
 func TestSave_ReadOnlyDir(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("os.Chmod on a directory does not enforce read-only on Windows")
+	}
 	dir := t.TempDir()
 	if err := os.Chmod(dir, 0o555); err != nil {
 		t.Fatalf("Chmod: %v", err)

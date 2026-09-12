@@ -46,7 +46,14 @@ func runCheckConfigInDir(t *testing.T, dir, home string, extraEnv []string, args
 	allArgs := append([]string{"check-config"}, args...)
 	cmd := exec.Command(binaryPath, allArgs...)
 	cmd.Dir = dir
-	cmd.Env = mergeEnv(append([]string{"HOME=" + home}, extraEnv...))
+	cmd.Env = mergeEnv(append([]string{
+		"HOME=" + home,
+		// Hermetic on Windows too: USERPROFILE feeds os.UserHomeDir, and an
+		// explicit XDG_CONFIG_HOME outranks the inherited real %APPDATA% in
+		// config path resolution.
+		"USERPROFILE=" + home,
+		"XDG_CONFIG_HOME=" + filepath.Join(home, ".config"),
+	}, extraEnv...))
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf
