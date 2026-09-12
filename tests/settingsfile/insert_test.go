@@ -2,6 +2,7 @@ package settingsfile_test
 
 import (
 	"errors"
+	"runtime"
 	"testing"
 
 	"github.com/labzink/cc-probeline/internal/settingsfile"
@@ -277,5 +278,70 @@ func TestInsert_PaddingZero(t *testing.T) {
 		}
 	default:
 		t.Fatalf("padding type unexpected: %T = %v", pad, pad)
+	}
+}
+
+
+// T-I10: on Windows a backslashed BinaryPath is normalised to forward
+// slashes — the only spelling that survives every statusLine spawn shell
+// (Windows API, cmd.exe and Git Bash alike). Regression for the silent
+// "status line never renders" install bug: `install --merge-settings`
+// wrote `C:\Users\...` and a bash-based spawner collapsed it to
+// `C:Users...`. On non-Windows ToSlash is a no-op, so this case only
+// asserts on Windows.
+func TestInsert_WindowsPathNormalisedToForwardSlashes(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("backslash normalisation is Windows-only; elsewhere backslash is a legal filename character")
+	}
+	opts := defaultOpts()
+	opts.BinaryPath = `C:\Users\test\.local\bin\cc-probeline.exe`
+	got, err := settingsfile.InsertStatusLine(settingsfile.Settings{}, opts)
+	if err != nil {
+		t.Fatalf("InsertStatusLine returned error: %v", err)
+	}
+	block := statusLineBlock(t, got)
+	want := "C:/Users/test/.local/bin/cc-probeline.exe"
+	if block["command"] != want {
+		t.Fatalf("command = %q, want %q", block["command"], want)
+	}
+}
+
+// T-I11: re-running install over a block that already carries the
+// forward-slash spelling of the same Windows path is idempotent — the
+// normalised comparable block must deep-equal the existing one.
+func TestInsert_WindowsPathIdempotentAfterNormalisation(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows-only: exercises backslash input against a forward-slash block")
+	}
+	existing := settingsfile.Settings{
+		"statusLine": map[string]any{
+			"type":            "command",
+			"command":         "C:/Users/test/.local/bin/cc-probeline.exe",
+			"padding":         float64(0),
+			"refreshInterval": float64(5),
+		},
+	}
+	opts := defaultOpts()
+	opts.BinaryPath = `C:\Users\test\.local\bin\cc-probeline.exe`
+	got, err := settingsfile.InsertStatusLine(existing, opts)
+	if err != nil {
+		t.Fatalf("InsertStatusLine returned error: %v", err)
+	}
+	block := statusLineBlock(t, got)
+	if block["command"] != "C:/Users/test/.local/bin/cc-probeline.exe" {
+		t.Fatalf("command changed unexpectedly: %q", block["command"])
+	}
+}
+
+// T-I12: a POSIX path is passed through byte-for-byte on every platform.
+func TestInsert_PosixPathUntouched(t *testing.T) {
+	opts := defaultOpts() // /usr/local/bin/cc-probeline
+	got, err := settingsfile.InsertStatusLine(settingsfile.Settings{}, opts)
+	if err != nil {
+		t.Fatalf("InsertStatusLine returned error: %v", err)
+	}
+	block := statusLineBlock(t, got)
+	if block["command"] != opts.BinaryPath {
+		t.Fatalf("command = %q, want untouched %q", block["command"], opts.BinaryPath)
 	}
 }

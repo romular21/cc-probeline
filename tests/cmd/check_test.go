@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -27,6 +28,11 @@ func TestMain(m *testing.M) {
 	defer os.RemoveAll(dir) //nolint:errcheck
 
 	binaryPath = filepath.Join(dir, "cc-probeline")
+	if runtime.GOOS == "windows" {
+		// Windows refuses to exec a binary without the .exe suffix, and
+		// `go build -o` does not add it for an explicit file path.
+		binaryPath += ".exe"
+	}
 	cmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/cc-probeline/")
 	cmd.Dir = projectRoot()
 	if out, err := cmd.CombinedOutput(); err != nil {
@@ -54,12 +60,33 @@ func projectRoot() string {
 	}
 }
 
+// sandboxEnv returns the parent environment with HOME and USERPROFILE (what
+// os.UserHomeDir reads on Windows) replaced by the sandbox home. Replacement
+// must remove the inherited entries: append alone yields DUPLICATE keys, and
+// Windows getenv takes the FIRST occurrence — the real home — which is how
+// these tests once escaped the sandbox into a real ~/.claude.
+func sandboxEnv(home string) []string {
+	env := []string{}
+	for _, kv := range os.Environ() {
+		i := strings.IndexByte(kv, '=')
+		if i < 0 {
+			continue
+		}
+		switch kv[:i] {
+		case "HOME", "USERPROFILE", "XDG_CONFIG_HOME", "APPDATA":
+			continue
+		}
+		env = append(env, kv)
+	}
+	return append(env, "HOME="+home, "USERPROFILE="+home)
+}
+
 // runCheckCmd executes cc-probeline --check with the given home directory and
 // returns stdout, stderr, and the exit code.
 func runCheckCmd(t *testing.T, home string) (stdout, stderr string, code int) {
 	t.Helper()
 	cmd := exec.Command(binaryPath, "--check")
-	cmd.Env = append(os.Environ(), "HOME="+home)
+	cmd.Env = sandboxEnv(home)
 
 	var outBuf, errBuf strings.Builder
 	cmd.Stdout = &outBuf

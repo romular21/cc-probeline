@@ -29,7 +29,7 @@ func TestRender_NoConfig_DefaultBehavior(t *testing.T) {
 
 	stdout, _, exitCode := run(t,
 		[]string{
-			"HOME=" + home,
+			"HOME=" + home, "USERPROFILE=" + home,
 			"XDG_CONFIG_HOME=" + xdgCfg,
 		},
 		[]byte(minimalPayload),
@@ -68,7 +68,7 @@ func TestRender_BrokenTOML_LenientWithAlert(t *testing.T) {
 
 	stdout, _, exitCode := run(t,
 		[]string{
-			"HOME=" + t.TempDir(),
+			"HOME=" + t.TempDir(), "USERPROFILE=" + t.TempDir(),
 			"XDG_CONFIG_HOME=" + xdgCfg,
 		},
 		[]byte(minimalPayload),
@@ -109,7 +109,7 @@ no_color = true
 
 	// Explicitly unset NO_COLOR so the test exercises config, not env.
 	env := []string{
-		"HOME=" + t.TempDir(),
+		"HOME=" + t.TempDir(), "USERPROFILE=" + t.TempDir(),
 		"XDG_CONFIG_HOME=" + xdgCfg,
 		"NO_COLOR=",           // explicit empty → unset semantics via override
 		"TERM=xterm-256color", // encourage ANSI detection in auto mode
@@ -143,7 +143,7 @@ func TestRender_ENVConfigMissingFile_LenientWithAlert(t *testing.T) {
 
 	stdout, _, exitCode := run(t,
 		[]string{
-			"HOME=" + t.TempDir(),
+			"HOME=" + t.TempDir(), "USERPROFILE=" + t.TempDir(),
 			"CC_PROBELINE_CONFIG=" + nonexistent,
 		},
 		[]byte(minimalPayload),
@@ -185,7 +185,7 @@ cost = false
 
 	stdout, _, exitCode := run(t,
 		[]string{
-			"HOME=" + t.TempDir(),
+			"HOME=" + t.TempDir(), "USERPROFILE=" + t.TempDir(),
 			"XDG_CONFIG_HOME=" + xdgCfg,
 			"NO_COLOR=1", // strip ANSI for reliable string matching
 		},
@@ -244,7 +244,7 @@ ctx_warn_ratio = 0.5
 
 	stdout, _, exitCode := run(t,
 		[]string{
-			"HOME=" + t.TempDir(),
+			"HOME=" + t.TempDir(), "USERPROFILE=" + t.TempDir(),
 			"XDG_CONFIG_HOME=" + xdgCfg,
 		},
 		[]byte(highCtxPayload),

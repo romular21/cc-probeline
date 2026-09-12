@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -28,6 +29,11 @@ var binaryPath string
 var hermeticStrip = map[string]bool{
 	"XDG_CONFIG_HOME":     true,
 	"CC_PROBELINE_CONFIG": true,
+	// On Windows globalConfigPath() falls back to %APPDATA%: an inherited
+	// real value would point every test at the developer's actual config —
+	// and config-writing tests would EDIT it. Drop it; run() supplies an
+	// explicit XDG_CONFIG_HOME instead, which outranks APPDATA everywhere.
+	"APPDATA": true,
 }
 
 // mergeEnv returns the parent environment with the given KEY=VALUE overrides
@@ -80,6 +86,11 @@ func TestMain(m *testing.M) {
 	defer os.RemoveAll(dir)
 
 	binaryPath = filepath.Join(dir, "cc-probeline")
+	if runtime.GOOS == "windows" {
+		// Windows refuses to exec a binary without the .exe suffix, and
+		// `go build -o` does not add it for an explicit file path.
+		binaryPath += ".exe"
+	}
 	cmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/cc-probeline/")
 	cmd.Dir = projectRoot()
 	if out, err := cmd.CombinedOutput(); err != nil {
@@ -116,8 +127,24 @@ func run(t *testing.T, extraEnv []string, stdinData []byte, args ...string) (std
 	t.Helper()
 	cmd := exec.Command(binaryPath, args...)
 	// Inject a fresh HOME so the binary does not touch the real ~/.claude.
+	// USERPROFILE is what os.UserHomeDir reads on Windows — without it the
+	// child escapes the sandbox into the REAL ~/.claude/settings.json (this
+	// happened: an install test left a developer's live status line pointing
+	// at a deleted temp binary). XDG_CONFIG_HOME pins config resolution to
+	// the sandbox on every platform.
+	// A caller that passes its own HOME (to plant fixtures there) gets the
+	// whole triple derived from THAT home, so config resolution follows it.
 	home := t.TempDir()
-	cmd.Env = mergeEnv(append([]string{"HOME=" + home}, extraEnv...))
+	for _, kv := range extraEnv {
+		if strings.HasPrefix(kv, "HOME=") {
+			home = strings.TrimPrefix(kv, "HOME=")
+		}
+	}
+	cmd.Env = mergeEnv(append([]string{
+		"HOME=" + home,
+		"USERPROFILE=" + home,
+		"XDG_CONFIG_HOME=" + filepath.Join(home, ".config"),
+	}, extraEnv...))
 	if stdinData != nil {
 		cmd.Stdin = bytes.NewReader(stdinData)
 	}

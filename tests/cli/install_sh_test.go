@@ -80,7 +80,10 @@ func setupInstallSh(t *testing.T) (home, proj, script, destBin string) {
 func runInstallSh(t *testing.T, home, script, destBin string, extraEnv []string, args ...string) (out string, code int) {
 	t.Helper()
 
-	cmdArgs := append([]string{script}, args...)
+	// Hand bash the script path with forward slashes: Git Bash on Windows
+	// eats unquoted backslashes in arguments (C:\Users -> C:Users) — the
+	// very bug this change fixes in the installer itself.
+	cmdArgs := append([]string{filepath.ToSlash(script)}, args...)
 	cmd := exec.Command("bash", cmdArgs...)
 
 	// Base env: inherit current process env so that PATH etc. are available,
@@ -201,7 +204,7 @@ func TestInstallSh_PreservesOtherKeys(t *testing.T) {
 		t.Fatalf("T-C4: statusLine absent or wrong type after install; settings: %v", got)
 	}
 	cmd, _ := block["command"].(string)
-	if !strings.HasSuffix(cmd, "cc-probeline") {
+	if !(strings.HasSuffix(cmd, "cc-probeline") || strings.HasSuffix(cmd, "cc-probeline.exe")) {
 		t.Fatalf("T-C4: statusLine.command does not end with cc-probeline; got: %q", cmd)
 	}
 }
@@ -279,7 +282,7 @@ func TestInstallSh_ForceWithBackup(t *testing.T) {
 		t.Fatalf("T-C6: statusLine absent or wrong type after --force install; settings: %v", got)
 	}
 	cmd, _ := block["command"].(string)
-	if !strings.HasSuffix(cmd, "cc-probeline") {
+	if !(strings.HasSuffix(cmd, "cc-probeline") || strings.HasSuffix(cmd, "cc-probeline.exe")) {
 		t.Fatalf("T-C6: statusLine.command does not end with cc-probeline after --force; got: %q", cmd)
 	}
 }

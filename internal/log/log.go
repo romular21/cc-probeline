@@ -155,7 +155,6 @@ func pruneIfNeeded(path string, now time.Time) {
 	if err != nil {
 		return
 	}
-	defer f.Close()
 	sc = bufio.NewScanner(f)
 	var kept []string
 	for sc.Scan() {
@@ -169,6 +168,10 @@ func pruneIfNeeded(path string, now time.Time) {
 			kept = append(kept, line)
 		}
 	}
+	// Close BEFORE the rename below: on Windows os.Rename over a file that
+	// is still open (even read-only) fails with a sharing violation — a
+	// deferred close here would silently disable pruning on Windows forever.
+	f.Close()
 
 	tmp := path + ".tmp"
 	out, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)

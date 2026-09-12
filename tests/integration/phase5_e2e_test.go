@@ -307,7 +307,7 @@ func TestPhase5_InstallPreservesUserSettings(t *testing.T) {
 		t.Fatalf("T-F2: statusLine absent or wrong type; settings: %v", settings)
 	}
 	cmd, _ := block["command"].(string)
-	if !strings.HasSuffix(cmd, "cc-probeline") {
+	if !(strings.HasSuffix(cmd, "cc-probeline") || strings.HasSuffix(cmd, "cc-probeline.exe")) {
 		t.Fatalf("T-F2: statusLine.command does not end with cc-probeline: %q", cmd)
 	}
 
@@ -421,7 +421,7 @@ func TestPhase5_ForceOverwritesForeign(t *testing.T) {
 		t.Fatalf("T-F6: statusLine absent or wrong type after --force; settings: %v", settings)
 	}
 	cmd, _ := block["command"].(string)
-	if !strings.HasSuffix(cmd, "cc-probeline") {
+	if !(strings.HasSuffix(cmd, "cc-probeline") || strings.HasSuffix(cmd, "cc-probeline.exe")) {
 		t.Fatalf("T-F6: statusLine.command does not end with cc-probeline after --force: %q", cmd)
 	}
 }
